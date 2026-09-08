@@ -1,20 +1,21 @@
 {
-  "name": "sticker-studio",
+  "name": "@sticker-studio/web",
   "private": true,
   "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "tsc -b && vite build",
-    "preview": "vite preview --host 127.0.0.1",
+    "dev:all": "node ../backend/scripts/dev-all.mjs",
     "test:e2e": "playwright test",
-    "format": "prettier --write src tests *.ts *.json index.html README.md"
+    "format": "prettier --write src tests *.ts *.json index.html"
   },
   "dependencies": {
-    "jszip": "^3.10.1",
-    "lucide-react": "^0.468.0",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "react-router-dom": "^7.0.0",
+    "lucide-react": "^0.468.0",
+    "jszip": "^3.10.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

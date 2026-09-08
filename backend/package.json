@@ -1,0 +1,27 @@
+{
+  "name": "@sticker-studio/api",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/server.mjs",
+    "start": "node src/server.mjs",
+    "db:migrate": "node src/migrate.mjs",
+    "db:setup": "node scripts/db-local.mjs setup",
+    "db:start": "node scripts/db-local.mjs start",
+    "db:stop": "node scripts/db-local.mjs stop",
+    "test": "node --test tests/*.test.mjs",
+    "format": "prettier --write src tests scripts *.json"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.0.0",
+    "helmet": "^8.1.0",
+    "pg": "^8.16.0",
+    "sharp": "^0.35.4",
+    "google-auth-library": "^10.0.0"
+  },
+  "devDependencies": {
+    "prettier": "^3.9.6"
+  }
+}

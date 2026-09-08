@@ -5,7 +5,7 @@ import { readFile } from "node:fs/promises";
 test("création, export WebP, persistance et archive ZIP", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto("/");
+  await page.goto("/atelier");
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
     "sticker",
   );
@@ -44,7 +44,7 @@ test("création, export WebP, persistance et archive ZIP", async ({ page }) => {
 
 test("import, détourage et affichage mobile", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
+  await page.goto("/atelier");
   const fixture = await page.evaluate(() => {
     const c = document.createElement("canvas");
     c.width = c.height = 100;
@@ -55,13 +55,11 @@ test("import, détourage et affichage mobile", async ({ page }) => {
     ctx.fillRect(30, 30, 40, 40);
     return c.toDataURL().split(",")[1];
   });
-  await page
-    .locator("input[type=file]")
-    .setInputFiles({
-      name: "photo.png",
-      mimeType: "image/png",
-      buffer: Buffer.from(fixture, "base64"),
-    });
+  await page.locator("input[type=file]").setInputFiles({
+    name: "photo.png",
+    mimeType: "image/png",
+    buffer: Buffer.from(fixture, "base64"),
+  });
   await expect(
     page.getByText("Image importée.", { exact: false }),
   ).toBeVisible();
@@ -86,12 +84,10 @@ test("import, détourage et affichage mobile", async ({ page }) => {
     ),
   ).toBe(true);
   await page.screenshot({ path: ".browser-tests/mobile.png", fullPage: true });
-  await page
-    .locator("input[type=file]")
-    .setInputFiles({
-      name: "bad.txt",
-      mimeType: "text/plain",
-      buffer: Buffer.from("bad"),
-    });
+  await page.locator("input[type=file]").setInputFiles({
+    name: "bad.txt",
+    mimeType: "text/plain",
+    buffer: Buffer.from("bad"),
+  });
   await expect(page.getByRole("status")).toContainText("Choisissez une image");
 });

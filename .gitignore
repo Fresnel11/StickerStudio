@@ -2,3 +2,10 @@ node_modules/
 dist/
 *.tsbuildinfo
 .browser-tests/
+backend/data/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+.env
+.env.*
+!.env.example

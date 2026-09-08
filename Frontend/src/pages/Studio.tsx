@@ -30,9 +30,21 @@ import {
   removePlainBackground,
   renderSticker,
   type Settings,
-} from "./sticker";
-type Saved = { id: string; data: string };
-export default function App() {
+} from "../sticker";
+import { useSession } from "../context/Session";
+import AccountBanner from "../components/AccountBanner";
+export default function Studio() {
+  const {
+    user,
+    saved,
+    packName: storedPackName,
+    libraryLoading,
+    libraryError,
+    reloadLibrary,
+    addSticker: saveSticker,
+    deleteSticker,
+    renamePack,
+  } = useSession();
   const [s, setS] = useState<Settings>(defaults);
   const [photo, setPhoto] = useState<HTMLImageElement | null>(null);
   const original = useRef<HTMLImageElement | null>(null);
@@ -41,26 +53,8 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const [help, setHelp] = useState(false);
-  const [packName, setPackName] = useState("Mon premier pack");
-  const [saved, setSaved] = useState<Saved[]>(() => {
-    try {
-      const data: unknown = JSON.parse(
-        localStorage.getItem("sticker-studio-pack") || "[]",
-      );
-      return Array.isArray(data)
-        ? data
-            .filter(
-              (x): x is Saved =>
-                typeof x?.id === "string" &&
-                typeof x?.data === "string" &&
-                x.data.startsWith("data:image/webp;base64,"),
-            )
-            .slice(0, 30)
-        : [];
-    } catch {
-      return [];
-    }
-  });
+  const [packName, setPackName] = useState(storedPackName);
+  useEffect(() => setPackName(storedPackName), [storedPackName]);
   const canvas = useRef<HTMLCanvasElement>(null);
   const input = useRef<HTMLInputElement>(null);
   const pack = useRef<HTMLElement>(null);
@@ -112,16 +106,6 @@ export default function App() {
       }
     });
   }
-  function persist(items: Saved[]) {
-    try {
-      localStorage.setItem("sticker-studio-pack", JSON.stringify(items));
-      setSaved(items);
-    } catch {
-      throw new Error(
-        "Stockage local plein : exportez le pack puis retirez quelques stickers.",
-      );
-    }
-  }
   async function addSticker() {
     await run(async () => {
       if (saved.length >= 30)
@@ -133,8 +117,12 @@ export default function App() {
         r.onerror = reject;
         r.readAsDataURL(blob);
       });
-      persist([...saved, { id: crypto.randomUUID(), data }]);
-      setNotice("Sticker ajouté à votre pack !");
+      await saveSticker(data);
+      setNotice(
+        user
+          ? "Sticker sauvegardé dans votre compte !"
+          : "Sticker ajouté à votre pack sur ce navigateur !",
+      );
     });
   }
   async function exportPack() {
@@ -180,28 +168,6 @@ export default function App() {
   );
   return (
     <>
-      <header className="topbar">
-        <a className="brand" href="#">
-          <span className="brand-icon">
-            <Sticker size={23} />
-          </span>
-          sticker<span className="brand-light">studio</span>
-          <span className="beta">BÊTA</span>
-        </a>
-        <nav>
-          <a className="nav-active" href="#atelier">
-            L’atelier
-          </a>
-          <button
-            onClick={() => pack.current?.scrollIntoView({ behavior: "smooth" })}
-          >
-            Mes stickers <span className="count">{saved.length}</span>
-          </button>
-        </nav>
-        <button className="help" onClick={() => setHelp(true)}>
-          <CircleHelp size={17} /> Comment ça marche ?
-        </button>
-      </header>
       <main>
         <section className="intro">
           <div>
@@ -226,6 +192,13 @@ export default function App() {
             <i>✦</i>
           </div>
         </section>
+        <AccountBanner />
+        {libraryError && (
+          <div className="global-error" role="alert">
+            {libraryError}{" "}
+            <button onClick={() => void reloadLibrary()}>Réessayer</button>
+          </div>
+        )}
         <div className="workspace" id="atelier">
           <aside className="tools panel">
             <div className="panel-heading">
@@ -416,9 +389,11 @@ export default function App() {
               <div className="privacy">
                 <ShieldCheck size={17} />
                 <span>
-                  Vos images restent sur votre appareil.
+                  Vos photos restent sur votre appareil.
                   <br />
-                  Votre créativité aussi vous appartient.
+                  {user
+                    ? "Les stickers ajoutés au pack sont sauvegardés dans votre compte."
+                    : "Vos stickers sont conservés dans ce navigateur."}
                 </span>
               </div>
             </div>
@@ -480,7 +455,7 @@ export default function App() {
               <div className="export-actions">
                 <button
                   className="secondary"
-                  disabled={busy}
+                  disabled={busy || libraryLoading || !!libraryError}
                   onClick={addSticker}
                 >
                   <Plus size={17} /> Au pack
@@ -520,9 +495,19 @@ export default function App() {
                   value={packName}
                   maxLength={40}
                   onChange={(e) => setPackName(e.target.value)}
+                  onBlur={() => {
+                    if (packName !== storedPackName)
+                      void run(async () => {
+                        await renamePack(packName);
+                        setNotice("Nom du pack enregistré.");
+                      });
+                  }}
+                  disabled={libraryLoading || !!libraryError || busy}
                 />
                 <p>
-                  {saved.length}/30 stickers · sauvegardés dans ce navigateur
+                  {libraryLoading
+                    ? "Chargement de la collection…"
+                    : `${saved.length}/30 stickers · ${user ? "sauvegardés dans votre compte" : "sauvegardés dans ce navigateur"}`}
                 </p>
               </div>
             </div>
@@ -540,13 +525,13 @@ export default function App() {
                 <img src={item.data} alt={`Sticker ${i + 1}`} />
                 <button
                   aria-label={`Supprimer le sticker ${i + 1}`}
-                  onClick={() => {
-                    try {
-                      persist(saved.filter((x) => x.id !== item.id));
-                    } catch (e) {
-                      setNotice((e as Error).message);
-                    }
-                  }}
+                  disabled={busy}
+                  onClick={() =>
+                    run(async () => {
+                      await deleteSticker(item.id);
+                      setNotice("Sticker supprimé.");
+                    })
+                  }
                 >
                   <Trash2 size={14} />
                 </button>
@@ -554,7 +539,9 @@ export default function App() {
             ))}
             <button
               className="add-slot"
-              disabled={busy || saved.length >= 30}
+              disabled={
+                busy || saved.length >= 30 || libraryLoading || !!libraryError
+              }
               onClick={addSticker}
               aria-label="Ajouter le sticker actuel au pack"
             >
