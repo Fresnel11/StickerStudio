@@ -3,10 +3,10 @@ import assert from "node:assert/strict";
 import { once } from "node:events";
 import { randomUUID, generateKeyPairSync, sign } from "node:crypto";
 import { OAuth2Client } from "google-auth-library";
-import "../src/config.mjs";
-import { openDatabase } from "../src/database.mjs";
+import "../src/config/env.mjs";
+import { openDatabase } from "../src/config/database.mjs";
 import { createApp } from "../src/app.mjs";
-import { googleProvider } from "../src/google.mjs";
+import { googleProvider } from "../src/services/google.service.mjs";
 
 const config = {
   clientId: "test-client",

@@ -1,6 +1,6 @@
 import { fileURLToPath } from "node:url";
-import { databaseConfig } from "./config.mjs";
-import { openDatabase } from "./database.mjs";
+import { databaseConfig } from "./config/env.mjs";
+import { openDatabase } from "./config/database.mjs";
 import { createApp } from "./app.mjs";
 const db = await openDatabase(databaseConfig());
 const app = await createApp({

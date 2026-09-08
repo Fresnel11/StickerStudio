@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "node --watch src/server.mjs",
     "start": "node src/server.mjs",
-    "db:migrate": "node src/migrate.mjs",
+    "db:migrate": "node src/database/migrate.mjs",
+    "db:check": "node scripts/db-check.mjs",
+    "db:prepare-test": "node scripts/db-prepare-test.mjs",
     "db:setup": "node scripts/db-local.mjs setup",
     "db:start": "node scripts/db-local.mjs start",
     "db:stop": "node scripts/db-local.mjs stop",

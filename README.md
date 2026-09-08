@@ -13,7 +13,17 @@ Frontend/                  # Application React, ses tests, sa configuration
   package-lock.json
   node_modules/             # Dépendances frontend uniquement
 backend/                   # API Express, PostgreSQL, authentification
-  src/
+  src/config/              # Environnement et connexion PostgreSQL
+  src/models/              # Accès SQL aux données
+  src/services/            # Logique métier, mots de passe, sessions, Google
+  src/controllers/         # Traitement des requêtes HTTP
+  src/routes/              # Déclaration des endpoints
+  src/middlewares/         # Sécurité, session, validation, erreurs
+  src/validators/          # Validation des données reçues
+  src/utils/               # Cookies, hachage et erreurs HTTP
+  src/database/            # Exécution des migrations
+  src/app.mjs              # Assemblage Express
+  src/server.mjs           # Démarrage du serveur
   migrations/
   tests/
   scripts/
@@ -37,7 +47,8 @@ Depuis la racine :
 ```sh
 npm install --prefix Frontend
 npm install --prefix backend
-npm run db:start --prefix backend
+npm run db:check --prefix backend
+npm run db:migrate --prefix backend
 npm run dev:all --prefix Frontend
 ```
 
@@ -52,13 +63,17 @@ npm run dev --prefix Frontend
 
 ## PostgreSQL
 
-La configuration se trouve dans backend/.env, ignoré par Git. Une instance locale dédiée a été préparée sur 127.0.0.1:55432, avec ses données dans backend/data/postgres. L’instance habituelle sur 5432 n’est pas modifiée.
+La configuration se trouve dans backend/.env, ignoré par Git. L’application utilise la base **sticker_studio sur localhost:5433**, fournie par le propriétaire du projet. PostgreSQL doit être démarré via votre gestionnaire habituel. Le mot de passe n’est pas stocké dans les fichiers suivis par Git.
 
-- `npm run db:setup --prefix backend` : initialise une instance dédiée si nécessaire, sans écraser une configuration .env existante.
-- `npm run db:start --prefix backend` / `npm run db:stop --prefix backend` : démarrent et arrêtent cette instance.
+- `npm run db:check --prefix backend` : vérifie la connexion et liste les tables publiques.
+- `npm run db:prepare-test --prefix backend` : prépare une base séparée sticker_studio_test sur le même serveur et renseigne TEST_DATABASE_URL.
 - `npm run db:migrate --prefix backend` : applique les migrations. Elles sont également appliquées au démarrage de l’API.
 
-Pour utiliser votre instance, copiez backend/.env.example vers backend/.env et configurez DATABASE_URL et TEST_DATABASE_URL. Les deux bases doivent exister ; la base de test doit avoir un nom terminé par _test. Ne supprimez pas backend/data, qui contient les données locales persistantes.
+Les migrations versionnées dans backend/migrations créent users, sessions, stickers et oauth_requests ; schema_migrations conserve les versions appliquées. Elles sont transactionnelles et ne sont pas réappliquées à chaque lancement. Les tests utilisent sticker_studio_test, jamais les tables de la base applicative.
+
+L’ancienne instance de développement sur 55432 et ses données ont été conservées, mais ne sont plus utilisées par l’application. Les scripts db:setup / db:start / db:stop concernent uniquement cette ancienne configuration locale, pas le serveur actuel.
+
+Documentation des endpoints : [API et architecture du backend](backend/docs/API.md).
 
 ## Connexion Google
 

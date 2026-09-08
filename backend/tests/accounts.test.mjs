@@ -2,9 +2,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { once } from "node:events";
 import { randomUUID } from "node:crypto";
-import "../src/config.mjs";
+import "../src/config/env.mjs";
 import sharp from "sharp";
-import { openDatabase } from "../src/database.mjs";
+import { openDatabase } from "../src/config/database.mjs";
 import { createApp } from "../src/app.mjs";
 
 async function fixture(db, options = {}) {

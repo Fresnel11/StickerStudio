@@ -30,7 +30,7 @@ export async function openDatabase({ connectionString, schema = "public" }) {
       "CREATE TABLE IF NOT EXISTS schema_migrations(version INTEGER PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT now())",
     );
     const migrations = (
-      await readdir(new URL("../migrations/", import.meta.url))
+      await readdir(new URL("../../migrations/", import.meta.url))
     )
       .filter((name) => /^\d+_.+\.sql$/.test(name))
       .sort();
@@ -46,7 +46,7 @@ export async function openDatabase({ connectionString, schema = "public" }) {
       ) {
         await client.query(
           await readFile(
-            new URL(`../migrations/${file}`, import.meta.url),
+            new URL(`../../migrations/${file}`, import.meta.url),
             "utf8",
           ),
         );
