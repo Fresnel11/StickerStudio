@@ -1,11 +1,11 @@
 import { randomUUID } from "node:crypto";
 export function createStickerModel(db) {
   return {
-    listStickers: async (id) =>
+    listStickers: async (userId, packId) =>
       (
         await db.query(
-          "SELECT id,data FROM stickers WHERE user_id=$1 ORDER BY position",
-          [id],
+          "SELECT id,data FROM stickers WHERE user_id=$1 AND pack_id=$2 ORDER BY position",
+          [userId, packId],
         )
       ).rows,
     deleteSticker: async (owner, id) =>
@@ -15,7 +15,7 @@ export function createStickerModel(db) {
           owner,
         ])
       ).rowCount,
-    async insertStickers(userId, items) {
+    async insertStickers(userId, packId, items) {
       const client = await db.connect();
       try {
         await client.query("BEGIN");
@@ -23,11 +23,21 @@ export function createStickerModel(db) {
         await client.query("SELECT id FROM users WHERE id=$1 FOR UPDATE", [
           userId,
         ]);
+        if (!packId) {
+          packId = (
+            await client.query(
+              "SELECT id FROM packs WHERE user_id=$1 ORDER BY position LIMIT 1",
+              [userId],
+            )
+          ).rows[0]?.id;
+        }
+        if (!packId)
+          throw Object.assign(new Error("Pack introuvable."), { status: 404 });
         let count = Number(
           (
             await client.query(
-              "SELECT COUNT(*) AS count FROM stickers WHERE user_id=$1",
-              [userId],
+              "SELECT COUNT(*) AS count FROM stickers WHERE user_id=$1 AND pack_id=$2",
+              [userId, packId],
             )
           ).rows[0].count,
         );
@@ -35,25 +45,25 @@ export function createStickerModel(db) {
         for (const item of items) {
           const existing = (
             await client.query(
-              "SELECT id,data FROM stickers WHERE user_id=$1 AND digest=$2",
-              [userId, item.digest],
+              "SELECT id,data FROM stickers WHERE user_id=$1 AND pack_id=$2 AND digest=$3",
+              [userId, packId, item.digest],
             )
           ).rows[0];
           if (existing) {
             result.push(existing);
             continue;
           }
-          if (count >= 30)
+          if (count >= 6)
             throw Object.assign(
               new Error(
-                "Votre pack contient déjà 30 stickers. Exportez-le puis libérez des places.",
+                "Votre pack contient déjà 6 stickers. Exportez-le puis libérez des places.",
               ),
               { status: 409 },
             );
           const sticker = { id: randomUUID(), data: item.data };
           await client.query(
-            "INSERT INTO stickers(id,user_id,data,digest,created_at) VALUES($1,$2,$3,$4,$5)",
-            [sticker.id, userId, item.data, item.digest, Date.now()],
+            "INSERT INTO stickers(id,user_id,pack_id,data,digest,created_at) VALUES($1,$2,$3,$4,$5,$6)",
+            [sticker.id, userId, packId, item.data, item.digest, Date.now()],
           );
           result.push(sticker);
           count++;

@@ -4,6 +4,7 @@ import { createHealthController } from "../controllers/health.controller.js";
 import { createUserModel } from "../models/user.model.js";
 import { createSessionModel } from "../models/session.model.js";
 import { createStickerModel } from "../models/sticker.model.js";
+import { createPackModel } from "../models/pack.model.js";
 import { createOAuthModel } from "../models/oauth.model.js";
 import { createAuthService } from "../services/auth.service.js";
 import { createSessionService } from "../services/session.service.js";
@@ -19,7 +20,8 @@ import { stickerRoutes } from "./sticker.routes.js";
 export async function apiRoutes({ db, secure, authLimit, google }) {
   const users = createUserModel(db),
     sessions = createSessionModel(db),
-    stickers = createStickerModel(db);
+    stickers = createStickerModel(db),
+    packs = createPackModel(db);
   const session = createSessionService(sessions, secure);
   const router = Router();
   router.use(loadSession(sessions));
@@ -39,7 +41,7 @@ export async function apiRoutes({ db, secure, authLimit, google }) {
   );
   router.use(
     "/library",
-    libraryRoutes(createLibraryController(users, stickers)),
+    libraryRoutes(createLibraryController(users, stickers, packs)),
   );
   router.use("/stickers", stickerRoutes(createStickerController(stickers)));
   return router;

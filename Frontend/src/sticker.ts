@@ -1,3 +1,5 @@
+import { FFmpeg } from "@ffmpeg/ffmpeg";
+import { fetchFile, toBlobURL } from "@ffmpeg/util";
 export type Settings = {
   text: string;
   emoji: string;
@@ -8,6 +10,10 @@ export type Settings = {
   y: number;
   rotation: number;
   textSize: number;
+  textZoom: number;
+  textRotation: number;
+  textX: number;
+  textY: number;
   round: boolean;
 };
 export const defaults: Settings = {
@@ -20,6 +26,10 @@ export const defaults: Settings = {
   y: 0,
   rotation: -8,
   textSize: 54,
+  textZoom: 100,
+  textRotation: -5,
+  textX: 0,
+  textY: 0,
   round: false,
 };
 export function renderSticker(
@@ -37,13 +47,10 @@ export function renderSticker(
   l.translate(256 + s.x, 235 + s.y);
   l.rotate((s.rotation * Math.PI) / 180);
   if (image) {
-    const scale =
-      (Math.min(380 / image.width, 360 / image.height) * s.zoom) / 100;
-    if (s.round) {
-      l.beginPath();
-      l.arc(0, 0, 174, 0, Math.PI * 2);
-      l.clip();
-    }
+    const baseScale = s.round
+      ? Math.max(348 / image.width, 348 / image.height)
+      : Math.min(380 / image.width, 360 / image.height);
+    const scale = (baseScale * s.zoom) / 100;
     l.drawImage(
       image,
       (-image.width * scale) / 2,
@@ -51,6 +58,14 @@ export function renderSticker(
       image.width * scale,
       image.height * scale,
     );
+    if (s.round) {
+      l.globalCompositeOperation = "destination-in";
+      l.beginPath();
+      l.arc(0, 0, (174 * s.zoom) / 100, 0, Math.PI * 2);
+      l.fillStyle = "#ffffff";
+      l.fill();
+      l.globalCompositeOperation = "source-over";
+    }
   } else {
     l.textAlign = "center";
     l.textBaseline = "middle";
@@ -72,8 +87,9 @@ export function renderSticker(
   c.drawImage(layer, 0, 0);
   if (s.text) {
     c.save();
-    c.translate(256, 418);
-    c.rotate((-5 * Math.PI) / 180);
+    c.translate(256 + s.textX, 418 + s.textY);
+    c.rotate((s.textRotation * Math.PI) / 180);
+    c.scale(s.textZoom / 100, s.textZoom / 100);
     c.font = `900 ${s.textSize}px Arial, sans-serif`;
     c.textAlign = "center";
     c.lineJoin = "round";
@@ -100,6 +116,66 @@ export async function encodeWebp(canvas: HTMLCanvasElement): Promise<Blob> {
     "Image trop détaillée pour la limite de 100 Ko. Réduisez le zoom ou simplifiez le sticker.",
   );
 }
+
+let ffmpeg: FFmpeg | null = null;
+let ffmpegLoading: Promise<FFmpeg> | null = null;
+async function getFfmpeg() {
+  if (ffmpeg) return ffmpeg;
+  if (!ffmpegLoading) {
+    ffmpegLoading = (async () => {
+      const instance = new FFmpeg();
+      const base = "https://unpkg.com/@ffmpeg/core@0.12.10/dist/umd";
+      await instance.load({
+        coreURL: await toBlobURL(`${base}/ffmpeg-core.js`, "text/javascript"),
+        wasmURL: await toBlobURL(`${base}/ffmpeg-core.wasm`, "application/wasm"),
+      });
+      ffmpeg = instance;
+      return instance;
+    })();
+  }
+  return ffmpegLoading;
+}
+export async function encodeAnimatedWebp(
+  file: File,
+  start = 0,
+  duration = 10,
+  onProgress?: (progress: number) => void,
+  text = "",
+  color = "#7554eb",
+): Promise<Blob> {
+  if (!file.type.startsWith("video/"))
+    throw new Error("Sélectionnez une vidéo MP4, WebM ou MOV.");
+  if (file.size > 16 * 1024 * 1024)
+    throw new Error("La vidéo doit faire moins de 16 Mo.");
+  const instance = await getFfmpeg();
+  instance.on("progress", ({ progress }) => onProgress?.(Math.min(1, progress)));
+  await instance.writeFile("input-video", await fetchFile(file));
+  const escapedText = text
+    .replaceAll("\\", "\\\\")
+    .replaceAll(":", "\\:")
+    .replaceAll("'", "\\'")
+    .replaceAll("%", "\\%");
+  const videoFilter = [
+    "fps=15",
+    "scale=512:512:force_original_aspect_ratio=decrease",
+    "pad=512:512:(ow-iw)/2:(oh-ih)/2:color=black@0",
+    ...(escapedText
+      ? [`drawtext=text='${escapedText}':fontcolor=0x${color.replace("#", "")}:fontsize=54:x=(w-text_w)/2:y=h-82:borderw=7:bordercolor=white`]
+      : []),
+  ].join(",");
+  await instance.exec([
+    "-ss", String(start), "-i", "input-video", "-t", String(duration), "-an",
+    "-vf", videoFilter,
+    "-c:v", "libwebp", "-lossless", "0", "-q:v", "65", "-loop", "0", "animated.webp",
+  ]);
+  const output = await instance.readFile("animated.webp");
+  await instance.deleteFile("input-video");
+  await instance.deleteFile("animated.webp");
+  const blob = new Blob([output], { type: "image/webp" });
+  if (blob.size > 500 * 1024)
+    throw new Error("La vidéo encodée dépasse 500 Ko. Utilisez une vidéo plus courte ou moins détaillée.");
+  return blob;
+}
 export function download(blob: Blob, name: string) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -116,48 +192,45 @@ export function loadImage(src: string): Promise<HTMLImageElement> {
     img.src = src;
   });
 }
-// Remove only edge-connected pixels close to the top-left background color.
-export async function removePlainBackground(
+// Segment the subject locally; never substitute a color-based eraser on failure.
+export async function removeImageBackground(
   image: HTMLImageElement,
+  onProgress?: (message: string) => void,
 ): Promise<HTMLImageElement> {
-  const canvas = document.createElement("canvas");
-  const ratio = Math.min(1, 1024 / Math.max(image.width, image.height));
-  canvas.width = Math.round(image.width * ratio);
-  canvas.height = Math.round(image.height * ratio);
-  const c = canvas.getContext("2d")!;
-  c.drawImage(image, 0, 0, canvas.width, canvas.height);
-  const { width: w, height: h } = canvas;
-  const data = c.getImageData(0, 0, w, h);
-  const p = data.data;
-  const bg = [p[0], p[1], p[2]];
-  const visited = new Uint8Array(w * h);
-  const queue: number[] = [];
-  const add = (i: number) => {
-    if (visited[i]) return;
-    visited[i] = 1;
-    const j = i * 4;
-    if (
-      Math.hypot(p[j] - bg[0], p[j + 1] - bg[1], p[j + 2] - bg[2]) < 65 ||
-      p[j + 3] === 0
-    )
-      queue.push(i);
-  };
-  for (let x = 0; x < w; x++) {
-    add(x);
-    add((h - 1) * w + x);
+  try {
+    onProgress?.("Préparation du détourage…");
+    const source = document.createElement("canvas");
+    source.width = image.naturalWidth;
+    source.height = image.naturalHeight;
+    source.getContext("2d")!.drawImage(image, 0, 0);
+    const input = await new Promise<Blob>((resolve, reject) => {
+      source.toBlob(
+        (blob) => (blob ? resolve(blob) : reject(new Error("Image illisible"))),
+        "image/png",
+      );
+    });
+    const { removeBackground } = await import("@imgly/background-removal");
+    const result = await removeBackground(input, {
+      model: "isnet_fp16",
+      output: { format: "image/png" },
+      progress: (key, current, total) => {
+        onProgress?.(
+          key.startsWith("fetch:")
+            ? `Chargement du modèle IA : ${Math.round((current / Math.max(total, 1)) * 100)} %`
+            : "Détourage du sujet en cours…",
+        );
+      },
+    });
+    const url = URL.createObjectURL(result);
+    try {
+      return await loadImage(url);
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  } catch (error) {
+    console.error("Échec du détourage IA :", error);
+    throw new Error(
+      "Le détourage IA a échoué. Vérifiez votre connexion et réessayez. Votre image a été conservée.",
+    );
   }
-  for (let y = 0; y < h; y++) {
-    add(y * w);
-    add(y * w + w - 1);
-  }
-  for (let head = 0; head < queue.length; head++) {
-    const i = queue[head];
-    p[i * 4 + 3] = 0;
-    if (i % w > 0) add(i - 1);
-    if (i % w < w - 1) add(i + 1);
-    if (i >= w) add(i - w);
-    if (i < w * (h - 1)) add(i + w);
-  }
-  c.putImageData(data, 0, 0);
-  return loadImage(canvas.toDataURL());
 }

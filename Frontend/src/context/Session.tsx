@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import { api, readGuestStickers, type Saved, type User } from "../lib/api";
+export type Pack = { id: string; name: string };
 type SessionValue = {
   user: User | null;
   ready: boolean;
@@ -19,12 +20,16 @@ type SessionValue = {
   logout: () => Promise<void>;
   saved: Saved[];
   packName: string;
+  packs: Pack[];
+  activePackId: string | null;
   libraryLoading: boolean;
   libraryError: string;
   reloadLibrary: () => Promise<void>;
   addSticker: (data: string) => Promise<void>;
   deleteSticker: (id: string) => Promise<void>;
   renamePack: (name: string) => Promise<void>;
+  createPack: (name: string) => Promise<void>;
+  selectPack: (id: string) => Promise<void>;
   guestCount: number;
   importGuest: () => Promise<void>;
 };
@@ -35,6 +40,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [sessionError, setSessionError] = useState("");
   const [saved, setSaved] = useState<Saved[]>([]);
   const [packName, setPackName] = useState("Mon premier pack");
+  const [packs, setPacks] = useState<Pack[]>([]);
+  const [activePackId, setActivePackId] = useState<string | null>(null);
   const [libraryLoading, setLibraryLoading] = useState(true);
   const [libraryError, setLibraryError] = useState("");
   const [guestCount, setGuestCount] = useState(
@@ -71,10 +78,18 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setLibraryError("");
     try {
       if (user) {
-        const data = await api<{ name: string; stickers: Saved[] }>("/library");
+        const query = activePackId ? `?packId=${encodeURIComponent(activePackId)}` : "";
+        const data = await api<{
+          name: string;
+          stickers: Saved[];
+          packs: Pack[];
+          activePackId: string | null;
+        }>(`/library${query}`);
         if (current === generation.current) {
           setSaved(data.stickers);
           setPackName(data.name);
+          setPacks(data.packs);
+          setActivePackId(data.activePackId);
         }
       } else {
         setSaved(readGuestStickers());
@@ -92,6 +107,28 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     } finally {
       if (current === generation.current) setLibraryLoading(false);
     }
+  }
+  async function createPack(name: string) {
+    const result = await api<{ pack: Pack }>("/library/packs", {
+      method: "POST",
+      body: JSON.stringify({ name }),
+    });
+    setPacks((items) => [...items, result.pack]);
+    setActivePackId(result.pack.id);
+    setPackName(result.pack.name);
+    setSaved([]);
+  }
+  async function selectPack(id: string) {
+    const data = await api<{
+      name: string;
+      stickers: Saved[];
+      packs: Pack[];
+      activePackId: string | null;
+    }>(`/library?packId=${encodeURIComponent(id)}`);
+    setSaved(data.stickers);
+    setPackName(data.name);
+    setPacks(data.packs);
+    setActivePackId(data.activePackId);
   }
   useEffect(() => {
     setSaved([]);
@@ -138,7 +175,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     if (user) {
       const result = await api<{ sticker: Saved }>("/stickers", {
         method: "POST",
-        body: JSON.stringify({ data }),
+        body: JSON.stringify({ data, packId: activePackId }),
       });
       if (current === generation.current)
         setSaved((items) =>
@@ -147,8 +184,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
             : [...items, result.sticker],
         );
     } else {
-      if (saved.length >= 30)
-        throw new Error("Votre pack contient déjà 30 stickers.");
+      if (saved.length >= 6)
+        throw new Error("Votre pack contient déjà 6 stickers.");
       persistGuest([...saved, { id: crypto.randomUUID(), data }]);
     }
   }
@@ -168,7 +205,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     if (user)
       await api("/library", {
         method: "PATCH",
-        body: JSON.stringify({ name: normalized }),
+        body: JSON.stringify({ name: normalized, packId: activePackId }),
       });
     else localStorage.setItem("sticker-studio-pack-name", normalized);
     if (current === generation.current) setPackName(normalized);
@@ -199,12 +236,16 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         logout,
         saved,
         packName,
+        packs,
+        activePackId,
         libraryLoading,
         libraryError,
         reloadLibrary,
         addSticker,
         deleteSticker,
         renamePack,
+        createPack,
+        selectPack,
         guestCount,
         importGuest,
       }}

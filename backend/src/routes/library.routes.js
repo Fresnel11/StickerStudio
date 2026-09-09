@@ -7,5 +7,7 @@ export function libraryRoutes(controller) {
   router.use(requireUser);
   router.get("/", controller.list);
   router.patch("/", validate(packInput), controller.rename);
+  router.get("/packs", controller.packs);
+  router.post("/packs", validate(packInput), controller.createPack);
   return router;
 }

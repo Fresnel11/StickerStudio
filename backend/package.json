@@ -17,6 +17,8 @@
     "format": "prettier --write src tests scripts *.json"
   },
   "dependencies": {
+    "@ffmpeg/ffmpeg": "^0.12.15",
+    "@ffmpeg/util": "^0.12.2",
     "express": "^5.1.0",
     "express-rate-limit": "^8.0.0",
     "google-auth-library": "^10.0.0",

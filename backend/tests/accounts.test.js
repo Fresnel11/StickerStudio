@@ -257,7 +257,7 @@ test("limite du pack et import atomique", async () => {
     });
     const cookie = account.cookie.split(";")[0];
     const items = [];
-    for (let i = 0; i < 29; i++)
+    for (let i = 0; i < 5; i++)
       items.push({
         data: await sticker({ r: i * 8, g: 80, b: 150, alpha: 1 }),
       });
@@ -287,7 +287,7 @@ test("limite du pack et import atomique", async () => {
     );
     assert.equal(
       (await server.request("/library", { cookie })).body.stickers.length,
-      29,
+      5,
     );
     const simultaneous = await Promise.all(
       extra.map((body) =>
@@ -300,7 +300,7 @@ test("limite du pack et import atomique", async () => {
     );
     assert.equal(
       (await server.request("/library", { cookie })).body.stickers.length,
-      30,
+      6,
     );
   } finally {
     await server.close();

@@ -4,6 +4,9 @@ export const securityHeaders = (secure) =>
   helmet({
     contentSecurityPolicy: {
       directives: {
+        "connect-src": ["'self'", "https://staticimgly.com"],
+        "script-src": ["'self'", "blob:", "'wasm-unsafe-eval'"],
+        "worker-src": ["'self'", "blob:"],
         "img-src": ["'self'", "data:", "blob:"],
         "font-src": ["'self'", "https://fonts.gstatic.com"],
         "style-src": [

@@ -90,7 +90,7 @@ export default function Library() {
                   disabled={busy}
                 />
                 <span>
-                  {saved.length}/30 stickers <span>·</span>{" "}
+                  {saved.length}/6 stickers <span>·</span>{" "}
                   <CloudCheck size={13} /> Sauvegardés dans votre compte
                 </span>
               </div>
@@ -111,7 +111,7 @@ export default function Library() {
             </div>
             <button
               className="secondary"
-              disabled={!saved.length || busy}
+              disabled={!saved.length || saved.length > 6 || busy}
               onClick={() =>
                 run(async () => {
                   const zip = new JSZip();
@@ -122,7 +122,7 @@ export default function Library() {
                   );
                   zip.file(
                     "LISEZ-MOI.txt",
-                    `${packName}\nImportez ces fichiers WebP dans une application de création de stickers compatible avec votre téléphone. Ce ZIP ne s’installe pas directement dans WhatsApp. Un pack nécessite 3 à 30 stickers.`,
+                    `${packName}\nImportez ces fichiers WebP dans une application de création de stickers compatible avec votre téléphone. Ce ZIP ne s’installe pas directement dans WhatsApp. Sticker Studio limite chaque pack à 6 stickers.`,
                   );
                   download(
                     await zip.generateAsync({ type: "blob" }),

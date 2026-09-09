@@ -3,24 +3,25 @@ import { httpError } from "../utils/http-error.js";
 export function createStickerController(stickerModel) {
   return {
     async create(req, res) {
+      const packId = req.body?.packId;
       const item = await validateSticker(req.body?.data);
-      const [sticker] = await stickerModel.insertStickers(req.user.id, [item]);
+      const [sticker] = await stickerModel.insertStickers(req.user.id, packId, [item]);
       res.status(201).json({ sticker });
     },
     async importLocal(req, res) {
       if (
         !Array.isArray(req.body?.stickers) ||
         !req.body.stickers.length ||
-        req.body.stickers.length > 30
+        req.body.stickers.length > 6
       )
-        throw httpError(400, "Sélectionnez entre 1 et 30 stickers.");
+        throw httpError(400, "Sélectionnez entre 1 et 6 stickers.");
       const items = [];
       for (const item of req.body.stickers)
         items.push(await validateSticker(item?.data));
-      await stickerModel.insertStickers(req.user.id, items);
+      await stickerModel.insertStickers(req.user.id, req.body?.packId, items);
       res
         .status(201)
-        .json({ stickers: await stickerModel.listStickers(req.user.id) });
+        .json({ stickers: await stickerModel.listStickers(req.user.id, req.body?.packId) });
     },
     async remove(req, res) {
       if (

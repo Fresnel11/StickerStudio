@@ -96,7 +96,7 @@ La connexion Google et l’association explicite depuis « Mes stickers » sont 
 - Sans compte : stockage dans le navigateur.
 - Avec compte : collection privée dans PostgreSQL, téléchargement et suppression.
 - Transfert des stickers locaux vers le compte avec détection des doublons.
-- Un pack de 30 stickers maximum par compte.
+- Un pack de 6 stickers maximum par compte.
 
 Les photos originales restent sur l’appareil. Seuls les stickers ajoutés au compte sont envoyés au serveur. Les ZIP ne s’installent pas directement dans WhatsApp : l’intégration mobile reste à développer.
 
