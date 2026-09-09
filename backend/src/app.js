@@ -5,9 +5,9 @@ import {
   securityHeaders,
   protectApi,
   apiLimiter,
-} from "./middlewares/security.middleware.mjs";
-import { notFound, errorHandler } from "./middlewares/error.middleware.mjs";
-import { apiRoutes } from "./routes/index.mjs";
+} from "./middlewares/security.middleware.js";
+import { notFound, errorHandler } from "./middlewares/error.middleware.js";
+import { apiRoutes } from "./routes/index.js";
 
 export async function createApp({
   db,

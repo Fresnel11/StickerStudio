@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { requireUser } from "../middlewares/auth.middleware.mjs";
+import { requireUser } from "../middlewares/auth.middleware.js";
 export function stickerRoutes(controller) {
   const router = Router();
   router.use(requireUser);

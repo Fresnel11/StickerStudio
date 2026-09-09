@@ -1,4 +1,4 @@
-import "../src/config/env.mjs";
+import "../src/config/env.js";
 import { Client } from "pg";
 import { readFile, writeFile } from "node:fs/promises";
 const url = new URL(process.env.DATABASE_URL);

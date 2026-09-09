@@ -1,4 +1,4 @@
-import "../src/config/env.mjs";
+import "../src/config/env.js";
 import { Client } from "pg";
 const client = new Client({
   connectionString: process.env.DATABASE_URL,

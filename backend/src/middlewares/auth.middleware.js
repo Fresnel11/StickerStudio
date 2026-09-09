@@ -1,5 +1,5 @@
-import { digest } from "../utils/crypto.mjs";
-import { readCookie } from "../utils/cookies.mjs";
+import { digest } from "../utils/crypto.js";
+import { readCookie } from "../utils/cookies.js";
 export const loadSession = (sessionModel) => async (req, res, next) => {
   const token = readCookie(req, "studio_session");
   if (token && /^[a-f0-9]{64}$/.test(token))

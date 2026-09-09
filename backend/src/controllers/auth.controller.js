@@ -1,4 +1,4 @@
-import { publicUser } from "../services/auth.service.mjs";
+import { publicUser } from "../services/auth.service.js";
 export function createAuthController(authService, sessionService) {
   return {
     me(req, res) {

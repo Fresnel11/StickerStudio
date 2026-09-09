@@ -16,7 +16,7 @@ L’API écoute sur `http://127.0.0.1:3001/api`. Le frontend passe par son proxy
 | `src/database` | Commande de migration |
 | `migrations` | Scripts SQL versionnés |
 
-`app.mjs` assemble Express. `server.mjs` ouvre la base, applique les migrations manquantes puis lance l’écoute HTTP. Les modèles utilisent le pilote `pg`, sans ORM.
+`app.js` assemble Express. `server.js` ouvre la base, applique les migrations manquantes puis lance l’écoute HTTP. Les modèles utilisent le pilote `pg`, sans ORM.
 
 ## Inscription
 

@@ -1,5 +1,9 @@
 # Sticker Studio
 
+Le backend utilise Node.js et Express avec des fichiers `.js`. Le champ `"type": "module"` de `backend/package.json` permet de conserver les imports `import/export`.
+
+Dans `backend`, lancez `npm run dev` pour démarrer Nodemon. Il surveille `src`, `.env` et `migrations` selon `nodemon.json`. Le démarrage confirme la connexion PostgreSQL, les migrations à jour, puis l'adresse du serveur Express. Après un changement de commande de développement, arrêtez l'ancien processus avec `Ctrl+C` et relancez `npm run dev`.
+
 Application React de création de stickers, avec un backend Node.js / Express et une base PostgreSQL.
 
 ## Organisation
@@ -22,8 +26,8 @@ backend/                   # API Express, PostgreSQL, authentification
   src/validators/          # Validation des données reçues
   src/utils/               # Cookies, hachage et erreurs HTTP
   src/database/            # Exécution des migrations
-  src/app.mjs              # Assemblage Express
-  src/server.mjs           # Démarrage du serveur
+  src/app.js              # Assemblage Express
+  src/server.js           # Démarrage du serveur
   migrations/
   tests/
   scripts/
@@ -52,7 +56,7 @@ npm run db:migrate --prefix backend
 npm run dev:all --prefix Frontend
 ```
 
-Le serveur local est accessible sur **http://127.0.0.1:5173** ; l’API utilise le port 3001. Pour un autre port frontend : `node backend/scripts/dev-all.mjs --port 5175`.
+Le serveur local est accessible sur **http://127.0.0.1:5173** ; l’API utilise le port 3001. Pour un autre port frontend : `node backend/scripts/dev-all.js --port 5175`.
 
 Pour démarrer séparément, utilisez deux terminaux :
 

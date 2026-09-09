@@ -1,0 +1,6 @@
+{
+  "watch": ["src", ".env", "migrations"],
+  "ext": "js,json,env,sql",
+  "signal": "SIGTERM",
+  "delay": 300
+}

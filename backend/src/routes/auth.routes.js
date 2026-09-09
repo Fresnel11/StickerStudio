@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { validate } from "../middlewares/validate.middleware.mjs";
-import { loginInput, registerInput } from "../validators/auth.validator.mjs";
+import { validate } from "../middlewares/validate.middleware.js";
+import { loginInput, registerInput } from "../validators/auth.validator.js";
 export function authRoutes(controller, google, limiter) {
   const router = Router();
   router.get("/me", controller.me);

@@ -1,5 +1,5 @@
-import { validateSticker } from "../validators/sticker.validator.mjs";
-import { httpError } from "../utils/http-error.mjs";
+import { validateSticker } from "../validators/sticker.validator.js";
+import { httpError } from "../utils/http-error.js";
 export function createStickerController(stickerModel) {
   return {
     async create(req, res) {

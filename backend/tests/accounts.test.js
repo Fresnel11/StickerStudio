@@ -2,10 +2,10 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { once } from "node:events";
 import { randomUUID } from "node:crypto";
-import "../src/config/env.mjs";
+import "../src/config/env.js";
 import sharp from "sharp";
-import { openDatabase } from "../src/config/database.mjs";
-import { createApp } from "../src/app.mjs";
+import { openDatabase } from "../src/config/database.js";
+import { createApp } from "../src/app.js";
 
 async function fixture(db, options = {}) {
   const app = await createApp({ db, authLimit: 100, ...options });

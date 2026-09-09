@@ -1,7 +1,7 @@
 import { randomBytes, createHash } from "node:crypto";
-import { digest } from "../utils/crypto.mjs";
-import { googleConfig } from "../config/google.mjs";
-import { googleProvider } from "../services/google.service.mjs";
+import { digest } from "../utils/crypto.js";
+import { googleConfig } from "../config/google.js";
+import { googleProvider } from "../services/google.service.js";
 export function createGoogleController({
   oauthModel,
   session,

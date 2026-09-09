@@ -1,6 +1,6 @@
 import sharp from "sharp";
-import { digest } from "../utils/crypto.mjs";
-import { httpError as error } from "../utils/http-error.mjs";
+import { digest } from "../utils/crypto.js";
+import { httpError as error } from "../utils/http-error.js";
 export async function validateSticker(data) {
   if (
     typeof data !== "string" ||

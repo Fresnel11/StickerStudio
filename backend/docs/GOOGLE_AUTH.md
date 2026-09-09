@@ -27,7 +27,15 @@ GOOGLE_CLIENT_SECRET=votre-secret-google
 
 Ne placez jamais le secret dans une variable `VITE_`, dans le frontend ou dans Git. Le fichier `.env` est ignoré par Git. Ne publiez pas vos identifiants dans une conversation.
 
-Redémarrez le backend après modification de `.env`. Ouvrez l’application en utilisant exactement l’origine configurée. `localhost` et `127.0.0.1` ne sont pas interchangeables pour les cookies et les URI OAuth.
+En développement sur Windows, les commandes `dev` et `dev:all` surveillent maintenant `.env` et redémarrent automatiquement le backend quand il est enregistré. Un serveur lancé avec `start` doit être redémarré manuellement. Relancez ensuite le parcours depuis « Continuer avec Google » : une page Google déjà ouverte conserve les paramètres de la demande initiale.
+
+Ouvrez l’application en utilisant exactement l’origine configurée. `localhost` et `127.0.0.1` ne sont pas interchangeables pour les cookies et les URI OAuth.
+
+### Un ancien nom d’application apparaît
+
+Le nom affiché par Google dépend du Branding du projet propriétaire du client OAuth, pas du nom React. Vérifiez **Google Auth Platform → Clients** (le client doit correspondre à GOOGLE_CLIENT_ID), puis **Branding / Identité de marque** dans ce même projet. Les modifications de marque peuvent être conservées comme brouillon selon l’état de vérification du projet.
+
+Depuis la racine, `npm run google:check --prefix backend` compare le client réellement envoyé par le serveur à celui du fichier .env, sans afficher les secrets. Ce diagnostic ne peut pas lire le nom configuré dans la console Google.
 
 Pour un autre port, changez `APP_ORIGIN` et l’URI autorisée dans Google. Pour la production, utilisez une origine HTTPS et `NODE_ENV=production`.
 

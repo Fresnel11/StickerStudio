@@ -3,7 +3,7 @@ export default defineConfig({
   testDir: "./tests",
   outputDir: ".browser-tests/results",
   webServer: {
-    command: "node ../backend/scripts/dev-all.mjs --port 5180",
+    command: "node ../backend/scripts/dev-all.js --port 5180",
     url: "http://127.0.0.1:5180",
     reuseExistingServer: false,
     env: {

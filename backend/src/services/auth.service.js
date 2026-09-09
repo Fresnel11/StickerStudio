@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { hashPassword, verifyPassword } from "./password.service.mjs";
-import { httpError } from "../utils/http-error.mjs";
+import { hashPassword, verifyPassword } from "./password.service.js";
+import { httpError } from "../utils/http-error.js";
 export const publicUser = (user) => ({
   id: user.id,
   name: user.name,

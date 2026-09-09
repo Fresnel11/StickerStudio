@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { digest } from "../utils/crypto.mjs";
+import { digest } from "../utils/crypto.js";
 export function createSessionService(store, secure) {
   const cookie = { httpOnly: true, secure, sameSite: "lax", path: "/" };
   const tokenOf = (req) =>

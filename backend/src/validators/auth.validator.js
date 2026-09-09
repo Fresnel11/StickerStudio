@@ -1,4 +1,4 @@
-import { httpError } from "../utils/http-error.mjs";
+import { httpError } from "../utils/http-error.js";
 export function loginInput(body) {
   const email =
     typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";

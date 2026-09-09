@@ -1,4 +1,4 @@
-import { httpError } from "../utils/http-error.mjs";
+import { httpError } from "../utils/http-error.js";
 export function packInput(body) {
   const name = typeof body?.name === "string" ? body.name.trim() : "";
   if (!name || name.length > 40)
