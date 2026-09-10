@@ -1,14 +1,27 @@
 export type User = { id: string; name: string; email: string };
 export type Saved = { id: string; data: string };
+
+const rawBase = (import.meta.env.VITE_API_URL || "").trim().replace(/\/+$/, "");
+export const API_BASE_URL = rawBase.endsWith("/api")
+  ? rawBase
+  : rawBase
+    ? `${rawBase}/api`
+    : "/api";
+
+export function getApiUrl(path: string): string {
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+  return `${API_BASE_URL}${cleanPath}`;
+}
+
 export async function api<T>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
   let response: Response;
   try {
-    response = await fetch(`/api${path}`, {
+    response = await fetch(getApiUrl(path), {
       ...options,
-      credentials: "same-origin",
+      credentials: "include",
       headers: {
         "Content-Type": "application/json",
         "X-Sticker-Studio": "1",

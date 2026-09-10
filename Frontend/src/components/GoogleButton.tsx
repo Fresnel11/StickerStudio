@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { api } from "../lib/api";
+import { api, getApiUrl } from "../lib/api";
 export const googleErrors: Record<string, string> = {
   unavailable:
     "La connexion Google n’est pas encore disponible. Utilisez votre adresse e-mail pour le moment.",
@@ -58,7 +58,9 @@ export default function GoogleButton({ link = false }: { link?: boolean }) {
             type="button"
             disabled={!provider?.google}
             onClick={() =>
-              window.location.assign(`/api/auth/google${link ? "?link=1" : ""}`)
+              window.location.assign(
+                getApiUrl(`/auth/google${link ? "?link=1" : ""}`),
+              )
             }
           >
             <svg aria-hidden="true" width="19" height="19" viewBox="0 0 48 48">
