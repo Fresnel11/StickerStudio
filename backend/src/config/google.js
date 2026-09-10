@@ -18,6 +18,7 @@ export function googleConfig() {
     clientId,
     clientSecret,
     origin,
-    redirectUri: `${origin}/api/auth/google/callback`,
+    redirectUri:
+      process.env.GOOGLE_REDIRECT_URI || `${origin}/api/auth/google/callback`,
   };
 }

@@ -1,7 +1,8 @@
 import { randomBytes } from "node:crypto";
 import { digest } from "../utils/crypto.js";
 export function createSessionService(store, secure) {
-  const cookie = { httpOnly: true, secure, sameSite: "lax", path: "/" };
+  const sameSite = secure ? "none" : "lax";
+  const cookie = { httpOnly: true, secure, sameSite, path: "/" };
   const tokenOf = (req) =>
     req.headers.cookie
       ?.split(";")

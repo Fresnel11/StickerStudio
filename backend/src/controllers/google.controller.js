@@ -13,7 +13,7 @@ export function createGoogleController({
   const cookieOptions = {
     httpOnly: true,
     secure,
-    sameSite: "lax",
+    sameSite: secure ? "none" : "lax",
     path: "/api/auth/google",
   };
   const redirect = (res, code) =>

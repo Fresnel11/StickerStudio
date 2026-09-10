@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import {
   securityHeaders,
+  corsMiddleware,
   protectApi,
   apiLimiter,
 } from "./middlewares/security.middleware.js";
@@ -17,7 +18,9 @@ export async function createApp({
   google,
 }) {
   const app = express();
+  app.set("trust proxy", 1);
   app.disable("x-powered-by");
+  app.use(corsMiddleware);
   app.use(securityHeaders(secure));
   app.use("/api", protectApi, apiLimiter());
   app.use(express.json({ limit: "5mb" }));
