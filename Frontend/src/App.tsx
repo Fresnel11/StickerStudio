@@ -13,7 +13,7 @@ import Auth from "./pages/Auth";
 import Studio from "./pages/Studio";
 import Library from "./pages/Library";
 function Site() {
-  const { ready, sessionError, retrySession } = useSession();
+  const { user, ready, sessionError, retrySession } = useSession();
   const { pathname } = useLocation();
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -47,7 +47,7 @@ function Site() {
       <Header />
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/atelier" element={<Studio />} />
+        <Route path="/atelier" element={<Studio key={user?.id ?? "guest"} />} />
         <Route path="/connexion" element={<Auth key="login" mode="login" />} />
         <Route
           path="/inscription"

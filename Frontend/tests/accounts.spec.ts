@@ -134,3 +134,34 @@ test("pages publiques sur ordinateur et mobile, navigation et formulaires", asyn
     "décollée",
   );
 });
+
+test("brouillons isolés entre comptes sur le même navigateur", async ({ page }) => {
+  const suffix = Date.now();
+  const password = "Un mot de passe de test 42!";
+  const headers = { "X-Sticker-Studio": "1" };
+  async function openText() {
+    await page.goto("/atelier");
+    await page.getByRole("tab", { name: "Texte", exact: true }).click();
+  }
+  await openText();
+  await page.getByLabel("Votre texte", { exact: true }).fill("Brouillon invité");
+  for (const name of ["Alice", "Bob"]) {
+    const response = await page.request.post("/api/auth/register", {
+      headers, data: { name, email: `${name}-${suffix}@example.test`, password },
+    });
+    expect(response.status()).toBe(201);
+    await openText();
+    await expect(page.getByLabel("Votre texte", { exact: true })).toHaveValue("TROP COOL !");
+    await page.getByLabel("Votre texte", { exact: true }).fill(`Brouillon ${name}`);
+    await page.request.post("/api/auth/logout", { headers, data: {} });
+  }
+  const response = await page.request.post("/api/auth/login", {
+    headers, data: { email: `Alice-${suffix}@example.test`, password },
+  });
+  expect(response.status()).toBe(200);
+  await openText();
+  await expect(page.getByLabel("Votre texte", { exact: true })).toHaveValue("Brouillon Alice");
+  await page.request.post("/api/auth/logout", { headers, data: {} });
+  await openText();
+  await expect(page.getByLabel("Votre texte", { exact: true })).toHaveValue("Brouillon invité");
+});

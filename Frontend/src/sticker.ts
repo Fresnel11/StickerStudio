@@ -1,5 +1,8 @@
 import { FFmpeg } from "@ffmpeg/ffmpeg";
-import { fetchFile, toBlobURL } from "@ffmpeg/util";
+import { fetchFile } from "@ffmpeg/util";
+import coreURL from "@ffmpeg/core?url";
+import wasmURL from "@ffmpeg/core/wasm?url";
+import classWorkerURL from "@ffmpeg/ffmpeg/worker?worker&url";
 export type Settings = {
   text: string;
   emoji: string;
@@ -14,6 +17,7 @@ export type Settings = {
   textRotation: number;
   textX: number;
   textY: number;
+  textOutline: number;
   round: boolean;
 };
 export const defaults: Settings = {
@@ -30,6 +34,7 @@ export const defaults: Settings = {
   textRotation: -5,
   textX: 0,
   textY: 0,
+  textOutline: 7,
   round: false,
 };
 export function renderSticker(
@@ -85,6 +90,9 @@ export function renderSticker(
     c.drawImage(border, 0, 0);
   }
   c.drawImage(layer, 0, 0);
+  renderStickerText(c, s);
+}
+export function renderStickerText(c: CanvasRenderingContext2D, s: Settings) {
   if (s.text) {
     c.save();
     c.translate(256 + s.textX, 418 + s.textY);
@@ -94,8 +102,10 @@ export function renderSticker(
     c.textAlign = "center";
     c.lineJoin = "round";
     c.strokeStyle = "#fff";
-    c.lineWidth = 14;
-    c.strokeText(s.text, 0, 0, 445);
+    if (s.textOutline > 0) {
+      c.lineWidth = s.textOutline * 2;
+      c.strokeText(s.text, 0, 0, 445);
+    }
     c.fillStyle = s.color;
     c.fillText(s.text, 0, 0, 445);
     c.restore();
@@ -124,12 +134,16 @@ async function getFfmpeg() {
   if (!ffmpegLoading) {
     ffmpegLoading = (async () => {
       const instance = new FFmpeg();
-      const base = "https://unpkg.com/@ffmpeg/core@0.12.10/dist/umd";
-      await instance.load({
-        coreURL: await toBlobURL(`${base}/ffmpeg-core.js`, "text/javascript"),
-        wasmURL: await toBlobURL(`${base}/ffmpeg-core.wasm`, "application/wasm"),
-      });
-      ffmpeg = instance;
+      const timeout = setTimeout(() => instance.terminate(), 45000);
+      try {
+        await instance.load({ coreURL, wasmURL, classWorkerURL });
+      } catch {
+        instance.terminate();
+        ffmpegLoading = null;
+        throw new Error("Le moteur vidéo n’a pas pu démarrer. Rechargez la page et réessayez.");
+      } finally {
+        clearTimeout(timeout);
+      }      ffmpeg = instance;
       return instance;
     })();
   }
@@ -140,41 +154,60 @@ export async function encodeAnimatedWebp(
   start = 0,
   duration = 10,
   onProgress?: (progress: number) => void,
-  text = "",
-  color = "#7554eb",
+  settings: Settings = { ...defaults, text: "" },
 ): Promise<Blob> {
   if (!file.type.startsWith("video/"))
     throw new Error("Sélectionnez une vidéo MP4, WebM ou MOV.");
   if (file.size > 16 * 1024 * 1024)
     throw new Error("La vidéo doit faire moins de 16 Mo.");
+  onProgress?.(-1);
   const instance = await getFfmpeg();
-  instance.on("progress", ({ progress }) => onProgress?.(Math.min(1, progress)));
+  onProgress?.(0);
+  const progressHandler = ({ time }: { time: number }) => onProgress?.(Math.min(0.99, Math.max(0, time / (duration * 1000000))));
+  instance.on("progress", progressHandler);
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    instance.terminate();
+    ffmpeg = null;
+    ffmpegLoading = null;
+  }, 120000);
+  try {
   await instance.writeFile("input-video", await fetchFile(file));
-  const escapedText = text
-    .replaceAll("\\", "\\\\")
-    .replaceAll(":", "\\:")
-    .replaceAll("'", "\\'")
-    .replaceAll("%", "\\%");
+  const textCanvas = document.createElement("canvas");
+  textCanvas.width = textCanvas.height = 512;
+  renderStickerText(textCanvas.getContext("2d")!, settings);
+  const textBlob = await new Promise<Blob>((resolve, reject) => textCanvas.toBlob(blob => blob ? resolve(blob) : reject(new Error("Texte illisible")), "image/png"));
+  await instance.writeFile("text-overlay.png", await fetchFile(textBlob));
   const videoFilter = [
     "fps=15",
-    "scale=512:512:force_original_aspect_ratio=decrease",
-    "pad=512:512:(ow-iw)/2:(oh-ih)/2:color=black@0",
-    ...(escapedText
-      ? [`drawtext=text='${escapedText}':fontcolor=0x${color.replace("#", "")}:fontsize=54:x=(w-text_w)/2:y=h-82:borderw=7:bordercolor=white`]
-      : []),
+    "scale=512:512:force_original_aspect_ratio=increase",
+    "crop=512:512",
   ].join(",");
-  await instance.exec([
-    "-ss", String(start), "-i", "input-video", "-t", String(duration), "-an",
-    "-vf", videoFilter,
+  const exitCode = await instance.exec([
+    "-y",
+    "-ss", String(start), "-i", "input-video", "-i", "text-overlay.png", "-t", String(duration), "-an",
+    "-filter_complex", `[0:v]${videoFilter}[base];[base][1:v]overlay=0:0:format=auto`,
     "-c:v", "libwebp", "-lossless", "0", "-q:v", "65", "-loop", "0", "animated.webp",
   ]);
+  if (exitCode !== 0) throw new Error("La conversion a échoué. Essayez un extrait plus court ou une autre vidéo.");
   const output = await instance.readFile("animated.webp");
   await instance.deleteFile("input-video");
+  await instance.deleteFile("text-overlay.png");
   await instance.deleteFile("animated.webp");
   const blob = new Blob([output], { type: "image/webp" });
   if (blob.size > 500 * 1024)
     throw new Error("La vidéo encodée dépasse 500 Ko. Utilisez une vidéo plus courte ou moins détaillée.");
+  onProgress?.(1);
   return blob;
+  } catch (error) {
+    if (timedOut) throw new Error("La conversion a dépassé deux minutes. Réduisez la durée de l’extrait puis réessayez.");
+    throw error;
+  } finally {
+    clearTimeout(timer);
+    instance.off("progress", progressHandler);
+    if (!timedOut) await Promise.allSettled(["input-video", "text-overlay.png", "animated.webp"].map(name => instance.deleteFile(name)));
+  }
 }
 export function download(blob: Blob, name: string) {
   const url = URL.createObjectURL(blob);

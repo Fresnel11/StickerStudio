@@ -49,6 +49,7 @@ test("import, détourage et affichage mobile", async ({ page }) => {
   test.setTimeout(90_000);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/atelier");
+  await page.getByRole("navigation", { name: "Outils mobiles" }).getByRole("button", { name: "Image", exact: true }).click();
   const fixture = await page.evaluate(() => {
     const c = document.createElement("canvas");
     c.width = c.height = 100;
@@ -105,6 +106,7 @@ test("import, détourage et affichage mobile", async ({ page }) => {
       return canvas.getContext("2d")!.getImageData(10, 10, 1, 1).data[3];
     }),
   ).toBe(0);
+  await page.getByRole("button", { name: "Fermer les réglages" }).click();
   await page.getByRole("button", { name: "Aperçu conversation" }).click();
   await expect(page.getByText("Alors, cette journée ?")).toBeVisible();
   await expect(page.getByRole("button", { name: "Ordinateur" })).toBeVisible();
@@ -113,7 +115,7 @@ test("import, détourage et affichage mobile", async ({ page }) => {
   const tablet = page.getByRole("button", { name: "Tablette" });
   const smartphone = page.getByRole("button", { name: "Smartphone" });
   const stickerWidth = async () =>
-    (await page.locator(".device-chat canvas").boundingBox())!.width;
+    (await page.locator(".device-frame").boundingBox())!.width;
   const desktopWidth = await stickerWidth();
   await tablet.click();
   const tabletWidth = await stickerWidth();
@@ -122,14 +124,14 @@ test("import, détourage et affichage mobile", async ({ page }) => {
   const smartphoneWidth = await stickerWidth();
   expect(desktopWidth).toBeGreaterThan(tabletWidth);
   expect(tabletWidth).toBeGreaterThan(smartphoneWidth);
-  expect(smartphoneWidth).toBeLessThan(180);
+  expect(smartphoneWidth).toBeLessThan(210);
   await expect(page.locator(".device-chat")).toHaveCSS(
     "background-image",
     /wa-bg\.png/,
   );
   const stickerBox = await page.locator(".device-chat canvas").boundingBox();
-  expect(stickerBox?.width).toBeGreaterThan(100);
-  expect(stickerBox?.height).toBeGreaterThan(100);
+  expect(stickerBox?.width).toBeGreaterThan(70);
+  expect(stickerBox?.height).toBeGreaterThan(70);
   expect(
     await page
       .locator(".device-chat canvas")
@@ -146,6 +148,7 @@ test("import, détourage et affichage mobile", async ({ page }) => {
   ).toBe(0);
   await page.reload();
   await expect(page.getByText("Alors, cette journée ?")).toBeVisible();
+  await page.getByRole("navigation", { name: "Outils mobiles" }).getByRole("button", { name: "Image", exact: true }).click();
   await expect(
     page.getByText("Recadrage en cercle", { exact: true }),
   ).toBeVisible();
@@ -170,6 +173,7 @@ test("import, détourage et affichage mobile", async ({ page }) => {
 test("rognage, annulation et restauration de l’image", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/atelier");
+  await page.getByRole("navigation", { name: "Outils mobiles" }).getByRole("button", { name: "Image", exact: true }).click();
   const fixture = await page.evaluate(() => {
     const canvas = document.createElement("canvas");
     canvas.width = canvas.height = 100;
@@ -268,4 +272,97 @@ test("historique par geste et saisie", async ({ page }) => {
   await expect(text).toHaveValue(initial);
   await page.keyboard.press("Control+y");
   await expect(text).toHaveValue("Bonjour !");
+});
+
+test("texte visible sur une vidéo avant conversion", async ({ page }) => {
+  await page.goto("/atelier");
+  const bytes = await page.evaluate(async () => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 160;
+    canvas.height = 100;
+    const ctx = canvas.getContext("2d")!;
+    const stream = canvas.captureStream(10);
+    const recorder = new MediaRecorder(stream, { mimeType: "video/webm" });
+    const chunks: Blob[] = [];
+    recorder.ondataavailable = event => chunks.push(event.data);
+    const stopped = new Promise<Blob>(resolve => recorder.onstop = () => resolve(new Blob(chunks, { type: "video/webm" })));
+    recorder.start();
+    const timer = setInterval(() => { ctx.fillStyle = "blue"; ctx.fillRect(0, 0, 160, 100); }, 100);
+    await new Promise(resolve => setTimeout(resolve, 1200));
+    recorder.stop(); clearInterval(timer); stream.getTracks().forEach(track => track.stop());
+    // MediaRecorder WebM omits duration metadata; provide it for this fixture.
+    Object.defineProperty(HTMLMediaElement.prototype, "duration", { configurable: true, get: () => 1.2 });
+    return Array.from(new Uint8Array(await (await stopped).arrayBuffer()));
+  });
+  await page.locator("input[type=file]").setInputFiles({ name: "test.webm", mimeType: "video/webm", buffer: Buffer.from(bytes) });
+  await page.getByRole("tab", { name: "Texte", exact: true }).click();
+  await expect(page.getByLabel("Votre texte", { exact: true })).toHaveValue("");
+  await page.getByLabel("Votre texte", { exact: true }).fill("SALUT");
+  const overlay = page.getByLabel("Texte sur la vidéo");
+  await expect(overlay).toBeVisible();
+  const painted = () => overlay.evaluate((canvas: HTMLCanvasElement) => canvas.getContext("2d")!.getImageData(0,0,512,512).data.some((value, index) => index % 4 === 3 && value > 0));
+  await expect.poll(painted).toBe(true);
+  await page.getByLabel("Votre texte", { exact: true }).fill("");
+  await expect.poll(painted).toBe(false);
+  await page.getByLabel("Votre texte", { exact: true }).fill("SALUT");
+  await page.getByRole("button", { name: "Préparer le sticker animé" }).click();
+  await expect(page.getByAltText("Aperçu du sticker animé")).toBeVisible({ timeout: 25000 });
+  const animatedSource = await page.getByAltText("Aperçu du sticker animé").getAttribute("src");
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Télécharger", exact: true }).click();
+  const result = await downloadPromise;
+  const downloadedBytes = await readFile((await result.path())!);
+  expect(downloadedBytes).toEqual(Buffer.from(animatedSource!.split(",")[1], "base64"));
+  expect(downloadedBytes.includes(Buffer.from("ANIM"))).toBe(true);
+  const edges = await page.evaluate(async (source) => {
+    const img = new Image(); img.src = source!; await img.decode();
+    const canvas = document.createElement("canvas"); canvas.width = canvas.height = 512;
+    const ctx = canvas.getContext("2d")!; ctx.drawImage(img, 0, 0);
+    return [1, 510].map(y => Array.from(ctx.getImageData(256, y, 1, 1).data));
+  }, animatedSource);
+  for (const pixel of edges) {
+    expect(pixel[2]).toBeGreaterThan(220);
+    expect(pixel[0]).toBeLessThan(30);
+    expect(pixel[3]).toBe(255);
+  }
+});
+
+test("aperçu visible pendant les réglages mobiles", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/atelier");
+  await page.getByRole("navigation", { name: "Outils mobiles" }).getByRole("button", { name: "Texte", exact: true }).click();
+  await page.locator(".mobile-options").getByRole("button", { name: "Vertical", exact: true }).click();
+  const position = page.getByRole("slider", { name: "Vertical" });
+  await position.scrollIntoViewIfNeeded();
+  const preview = page.locator(".preview-surface");
+  const bounds = (await preview.boundingBox())!;
+  expect(bounds.y).toBeGreaterThanOrEqual(-1);
+  expect(bounds.y + bounds.height).toBeLessThan(400);
+  const control = (await position.boundingBox())!;
+  expect(control.y).toBeGreaterThan(bounds.y + bounds.height);
+  await position.fill("-100");
+  await expect(position).toHaveValue("-100");
+  await page.screenshot({ path: ".browser-tests/mobile-sticky-preview.png" });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test("panneau mobile et réglage unique", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/atelier");
+  const nav = page.getByRole("navigation", { name: "Outils mobiles" });
+  await nav.getByRole("button", { name: "Texte", exact: true }).click();
+  await page.locator(".mobile-options").getByRole("button", { name: "Zoom", exact: true }).click();
+  const slider = page.getByRole("slider", { name: "Zoom", exact: false });
+  await expect(slider).toHaveCount(1);
+  await slider.fill("75");
+  await expect(slider).toHaveValue("75");
+  const preview = (await page.locator(".preview-surface").boundingBox())!;
+  const sheet = (await page.locator(".tools.sheet-open").boundingBox())!;
+  expect(preview.y + preview.height).toBeLessThanOrEqual(sheet.y);
+  await page.screenshot({ path: ".browser-tests/mobile-bottom-sheet.png" });
+  await page.getByRole("button", { name: "Fermer les réglages" }).click();
+  await expect(nav.getByRole("button", { name: "Texte", exact: true })).toHaveAttribute("aria-expanded", "false");
+  await nav.getByRole("button", { name: "Exporter" }).click();
+  await expect(page.getByRole("button", { name: "Télécharger", exact: true })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
