@@ -11,7 +11,7 @@ const app = await createApp({
   webDist: fileURLToPath(new URL("../../Frontend/dist", import.meta.url)),
 });
 const port = Number(process.env.API_PORT || 3001);
-const host = process.env.HOST || "127.0.0.1";
+const host = process.env.HOST || "0.0.0.0";
 const server = app.listen(port, host);
 server.on("listening", () => {
   console.log(`[API] Serveur Express démarré : http://${host}:${port}`);
