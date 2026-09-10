@@ -1,26 +1,34 @@
 import { Pool } from "pg";
 import { readFile, readdir } from "node:fs/promises";
+
 export async function openDatabase({ connectionString, schema = "public" }) {
   if (!/^[a-z][a-z0-9_]{0,62}$/.test(schema))
     throw new Error("Nom de schéma PostgreSQL invalide.");
+
   const pool = new Pool({
     connectionString,
     max: 10,
     connectionTimeoutMillis: 5000,
     idleTimeoutMillis: 30000,
-    options: `-c search_path=${schema}`,
   });
+
+  const setSearchPath = (client) =>
+    client.query(`SET search_path TO "${schema}", public`);
+
   pool.on("error", (error) =>
     console.error(
       "Connexion PostgreSQL interrompue :",
       error.code || "erreur réseau",
     ),
   );
+
   const client = await pool.connect().catch(async (error) => {
     await pool.end();
     throw error;
   });
+
   try {
+    await setSearchPath(client);
     await client.query("BEGIN");
     await client.query(
       "SELECT pg_advisory_xact_lock(hashtext('sticker_studio_migrations'))",
@@ -29,11 +37,13 @@ export async function openDatabase({ connectionString, schema = "public" }) {
     await client.query(
       "CREATE TABLE IF NOT EXISTS schema_migrations(version INTEGER PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT now())",
     );
+
     const migrations = (
       await readdir(new URL("../../migrations/", import.meta.url))
     )
       .filter((name) => /^\d+_.+\.sql$/.test(name))
       .sort();
+
     for (const file of migrations) {
       const version = Number(file.split("_")[0]);
       if (
@@ -56,13 +66,36 @@ export async function openDatabase({ connectionString, schema = "public" }) {
         );
       }
     }
+
     await client.query("COMMIT");
     client.release();
-    return pool;
   } catch (error) {
-    await client.query("ROLLBACK");
+    await client.query("ROLLBACK").catch(() => {});
     client.release();
     await pool.end();
     throw error;
   }
+
+  return {
+    async query(...args) {
+      const client = await pool.connect();
+      try {
+        await setSearchPath(client);
+        return await client.query(...args);
+      } finally {
+        client.release();
+      }
+    },
+    async connect() {
+      const client = await pool.connect();
+      try {
+        await setSearchPath(client);
+        return client;
+      } catch (error) {
+        client.release();
+        throw error;
+      }
+    },
+    end: () => pool.end(),
+  };
 }
