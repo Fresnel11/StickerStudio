@@ -124,7 +124,7 @@ export default function Library() {
                     "LISEZ-MOI.txt",
                     `${packName}\nImportez ces fichiers WebP dans une application de création de stickers compatible avec votre téléphone. Ce ZIP ne s’installe pas directement dans WhatsApp. Sticker Studio limite chaque pack à 6 stickers.`,
                   );
-                  download(
+                  await download(
                     await zip.generateAsync({ type: "blob" }),
                     `${packName.replace(/[^a-zA-Z0-9_-]/g, "-").slice(0, 40) || "stickers"}.zip`,
                   );

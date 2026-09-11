@@ -6,6 +6,7 @@ import { createSessionModel } from "../models/session.model.js";
 import { createStickerModel } from "../models/sticker.model.js";
 import { createPackModel } from "../models/pack.model.js";
 import { createOAuthModel } from "../models/oauth.model.js";
+import { createMobileGoogleModel } from "../models/mobile-google.model.js";
 import { createAuthService } from "../services/auth.service.js";
 import { createSessionService } from "../services/session.service.js";
 import { loadSession } from "../middlewares/auth.middleware.js";
@@ -32,6 +33,7 @@ export async function apiRoutes({ db, secure, authLimit, google }) {
       createAuthController(await createAuthService(users), session),
       createGoogleController({
         oauthModel: createOAuthModel(db),
+        mobileModel: createMobileGoogleModel(db),
         session,
         secure,
         ...google,

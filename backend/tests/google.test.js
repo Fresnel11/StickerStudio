@@ -248,6 +248,32 @@ test("Google : aller-retour OAuth, état à usage unique, compte existant et ass
     // A link callback cannot proceed after the authenticated session disappeared.
     const pending = await start(sessionCookie(linked), true);
     assert.match((await callback(pending)).location, /google=signin_first/);
+    // The APK keeps the verifier secret; Google runs in the system browser.
+    const mobile = (await request("/api/auth/google/mobile", { method: "POST", body: {} })).body;
+    const finish = (body = mobile, cookie = "") => request("/api/auth/google/mobile/finish", { method: "POST", body, cookie });
+    assert.equal((await finish()).body.pending, true);
+    assert.equal((await finish({ ...mobile, secret: "0".repeat(64) })).status, 410);
+    const browserStart = await request(`/api/auth/google?mobile=${mobile.id}`);
+    assert.equal(browserStart.status, 302);
+    assert.equal((await request(`/api/auth/google?mobile=${mobile.id}`)).status, 410);
+    const mobileFlow = {
+      state: new URL(browserStart.location).searchParams.get("state"),
+      cookie: browserStart.cookies[0].split(";")[0],
+    };
+    const browserDone = await callback(mobileFlow);
+    assert.equal(browserDone.status, 200);
+    assert.equal(sessionCookie(browserDone), undefined);
+    const completed = await finish();
+    assert.equal(completed.body.pending, false);
+    assert.equal((await request("/api/auth/me", { cookie: sessionCookie(completed) })).body.user.id, registration.body.user.id);
+    assert.equal((await finish()).status, 410);
+    // Cancellation is delivered to the APK without creating a session.
+    const cancellation = (await request("/api/auth/google/mobile", { method: "POST", body: {} })).body;
+    const cancelStart = await request(`/api/auth/google?mobile=${cancellation.id}`);
+    await request(`/api/auth/google/callback?state=${new URL(cancelStart.location).searchParams.get("state")}&error=access_denied`, { cookie: cancelStart.cookies[0].split(";")[0] });
+    assert.equal((await finish(cancellation)).body.errorCode, "cancelled");
+    assert.equal((await finish(cancellation)).status, 410);
+    assert.equal((await request("/api/auth/google/mobile", { method: "POST", body: { link: true } })).status, 401);
   } finally {
     await new Promise((resolve) => server.close(resolve));
     await db.query(`DROP SCHEMA "${schema}" CASCADE`);

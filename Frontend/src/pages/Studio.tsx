@@ -623,7 +623,7 @@ export default function Studio() {
         "LISEZ-MOI.txt",
         `${packName}\n\nStickers statiques WebP, 512 × 512 pixels, moins de 100 Ko.\nImportez les fichiers dans une application de création de packs compatible avec votre téléphone.\nCe ZIP ne s’installe pas directement dans WhatsApp. Sticker Studio limite chaque pack à 6 stickers.\n`,
       );
-      download(
+      await download(
         await zip.generateAsync({ type: "blob" }),
         `${packName.replace(/[^a-zA-Z0-9À-ÿ_-]/g, "-").slice(0, 60) || "stickers"}.zip`,
       );
@@ -1198,7 +1198,7 @@ export default function Studio() {
                   disabled={busy}
                   onClick={() =>
                     run(async () => {
-                      download(
+                      await download(
                         await currentStickerBlob(),
                         "mon-sticker.webp",
                       );

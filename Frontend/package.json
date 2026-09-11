@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
+    "dev:mobile": "vite --host 127.0.0.1 --port 5175 --strictPort --mode mobile",
     "build": "tsc -b && vite build",
     "dev:all": "node ../backend/scripts/dev-all.js",
     "test:e2e": "playwright test",

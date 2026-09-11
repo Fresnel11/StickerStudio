@@ -1,5 +1,6 @@
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { fetchFile } from "@ffmpeg/util";
+import { isNativeApp, saveNativeFile } from "./lib/native";
 import coreURL from "@ffmpeg/core?url";
 import wasmURL from "@ffmpeg/core/wasm?url";
 import classWorkerURL from "@ffmpeg/ffmpeg/worker?worker&url";
@@ -209,7 +210,8 @@ export async function encodeAnimatedWebp(
     if (!timedOut) await Promise.allSettled(["input-video", "text-overlay.png", "animated.webp"].map(name => instance.deleteFile(name)));
   }
 }
-export function download(blob: Blob, name: string) {
+export async function download(blob: Blob, name: string) {
+  if (isNativeApp()) return saveNativeFile(blob, name);
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;

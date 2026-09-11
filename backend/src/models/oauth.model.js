@@ -6,7 +6,7 @@ export function createOAuthModel(db) {
         Date.now(),
       ]);
       await db.query(
-        "INSERT INTO oauth_requests(state_hash,browser_hash,nonce,verifier,link_user_id,expires_at) VALUES($1,$2,$3,$4,$5,$6)",
+        "INSERT INTO oauth_requests(state_hash,browser_hash,nonce,verifier,link_user_id,expires_at,mobile_id) VALUES($1,$2,$3,$4,$5,$6,$7)",
         [
           request.stateHash,
           request.browserHash,
@@ -14,6 +14,7 @@ export function createOAuthModel(db) {
           request.verifier,
           request.linkUserId,
           request.expiresAt,
+          request.mobileId || null,
         ],
       );
     },

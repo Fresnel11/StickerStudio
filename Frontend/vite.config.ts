@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
+  ...(mode === "mobile" ? { define: { "import.meta.env.VITE_API_URL": JSON.stringify("/api") } } : {}),
   plugins: [react()],
   server: {
     proxy: {
@@ -10,4 +11,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));

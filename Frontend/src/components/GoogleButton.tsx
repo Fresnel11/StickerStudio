@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api, getApiUrl } from "../lib/api";
+import { isNativeApp } from "../lib/native";
+import { mobileGoogleLogin } from "../lib/mobile-google";
 export const googleErrors: Record<string, string> = {
   unavailable:
     "La connexion Google n’est pas encore disponible. Utilisez votre adresse e-mail pour le moment.",
@@ -24,6 +26,28 @@ export default function GoogleButton({ link = false }: { link?: boolean }) {
   const [failed, setFailed] = useState(false);
   const [retry, setRetry] = useState(0);
   const [search] = useSearchParams();
+  const [connecting, setConnecting] = useState(false);
+  const [nativeError, setNativeError] = useState("");
+  const connection = useRef<AbortController | null>(null);
+  useEffect(() => () => connection.current?.abort(), []);
+  async function connect() {
+    if (!isNativeApp()) {
+      window.location.assign(getApiUrl(`/auth/google${link ? "?link=1" : ""}`));
+      return;
+    }
+    const controller = new AbortController();
+    connection.current = controller;
+    setConnecting(true);
+    setNativeError("");
+    try {
+      const code = await mobileGoogleLogin(link, controller.signal);
+      if (code) setNativeError(googleErrors[code] || googleErrors.failed);
+    } catch (error) {
+      if (!controller.signal.aborted) setNativeError((error as Error).message);
+    } finally {
+      if (!controller.signal.aborted) setConnecting(false);
+    }
+  }
   useEffect(() => {
     let active = true;
     setFailed(false);
@@ -56,12 +80,8 @@ export default function GoogleButton({ link = false }: { link?: boolean }) {
           <button
             className="google-button"
             type="button"
-            disabled={!provider?.google}
-            onClick={() =>
-              window.location.assign(
-                getApiUrl(`/auth/google${link ? "?link=1" : ""}`),
-              )
-            }
+            disabled={!provider?.google || connecting}
+            onClick={() => void connect()}
           >
             <svg aria-hidden="true" width="19" height="19" viewBox="0 0 48 48">
               <path
@@ -81,8 +101,10 @@ export default function GoogleButton({ link = false }: { link?: boolean }) {
                 d="M24 11.2c3 0 5.6 1 7.7 3l5.8-5.8A19.4 19.4 0 0 0 24 3 20.4 20.4 0 0 0 5.7 14.2l6.9 5.4C14.2 14.8 18.7 11.2 24 11.2Z"
               />
             </svg>
-            {link ? "Associer mon compte Google" : "Continuer avec Google"}
+            {connecting ? "Connexion dans le navigateur…" : link ? "Associer mon compte Google" : "Continuer avec Google"}
           </button>
+          {connecting && <p className="google-hint">Terminez la connexion dans le navigateur, puis revenez dans l’application. <button onClick={() => { connection.current?.abort(); setConnecting(false); }}>Annuler</button></p>}
+          {nativeError && <p className="form-error" role="alert">{nativeError}</p>}
           {provider && !provider.google && (
             <p className="google-hint">
               La connexion Google sera bientôt disponible.
