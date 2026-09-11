@@ -141,10 +141,13 @@ async function getFfmpeg() {
       } catch {
         instance.terminate();
         ffmpegLoading = null;
-        throw new Error("Le moteur vidéo n’a pas pu démarrer. Rechargez la page et réessayez.");
+        throw new Error(
+          "Le moteur vidéo n’a pas pu démarrer. Rechargez la page et réessayez.",
+        );
       } finally {
         clearTimeout(timeout);
-      }      ffmpeg = instance;
+      }
+      ffmpeg = instance;
       return instance;
     })();
   }
@@ -164,7 +167,8 @@ export async function encodeAnimatedWebp(
   onProgress?.(-1);
   const instance = await getFfmpeg();
   onProgress?.(0);
-  const progressHandler = ({ time }: { time: number }) => onProgress?.(Math.min(0.99, Math.max(0, time / (duration * 1000000))));
+  const progressHandler = ({ time }: { time: number }) =>
+    onProgress?.(Math.min(0.99, Math.max(0, time / (duration * 1000000))));
   instance.on("progress", progressHandler);
   let timedOut = false;
   const timer = setTimeout(() => {
@@ -174,40 +178,75 @@ export async function encodeAnimatedWebp(
     ffmpegLoading = null;
   }, 120000);
   try {
-  await instance.writeFile("input-video", await fetchFile(file));
-  const textCanvas = document.createElement("canvas");
-  textCanvas.width = textCanvas.height = 512;
-  renderStickerText(textCanvas.getContext("2d")!, settings);
-  const textBlob = await new Promise<Blob>((resolve, reject) => textCanvas.toBlob(blob => blob ? resolve(blob) : reject(new Error("Texte illisible")), "image/png"));
-  await instance.writeFile("text-overlay.png", await fetchFile(textBlob));
-  const videoFilter = [
-    "fps=15",
-    "scale=512:512:force_original_aspect_ratio=increase",
-    "crop=512:512",
-  ].join(",");
-  const exitCode = await instance.exec([
-    "-y",
-    "-ss", String(start), "-i", "input-video", "-i", "text-overlay.png", "-t", String(duration), "-an",
-    "-filter_complex", `[0:v]${videoFilter}[base];[base][1:v]overlay=0:0:format=auto`,
-    "-c:v", "libwebp", "-lossless", "0", "-q:v", "65", "-loop", "0", "animated.webp",
-  ]);
-  if (exitCode !== 0) throw new Error("La conversion a échoué. Essayez un extrait plus court ou une autre vidéo.");
-  const output = await instance.readFile("animated.webp");
-  await instance.deleteFile("input-video");
-  await instance.deleteFile("text-overlay.png");
-  await instance.deleteFile("animated.webp");
-  const blob = new Blob([output], { type: "image/webp" });
-  if (blob.size > 500 * 1024)
-    throw new Error("La vidéo encodée dépasse 500 Ko. Utilisez une vidéo plus courte ou moins détaillée.");
-  onProgress?.(1);
-  return blob;
+    await instance.writeFile("input-video", await fetchFile(file));
+    const textCanvas = document.createElement("canvas");
+    textCanvas.width = textCanvas.height = 512;
+    renderStickerText(textCanvas.getContext("2d")!, settings);
+    const textBlob = await new Promise<Blob>((resolve, reject) =>
+      textCanvas.toBlob(
+        (blob) => (blob ? resolve(blob) : reject(new Error("Texte illisible"))),
+        "image/png",
+      ),
+    );
+    await instance.writeFile("text-overlay.png", await fetchFile(textBlob));
+    const videoFilter = [
+      "fps=15",
+      "scale=512:512:force_original_aspect_ratio=increase",
+      "crop=512:512",
+    ].join(",");
+    const exitCode = await instance.exec([
+      "-y",
+      "-ss",
+      String(start),
+      "-i",
+      "input-video",
+      "-i",
+      "text-overlay.png",
+      "-t",
+      String(duration),
+      "-an",
+      "-filter_complex",
+      `[0:v]${videoFilter}[base];[base][1:v]overlay=0:0:format=auto`,
+      "-c:v",
+      "libwebp",
+      "-lossless",
+      "0",
+      "-q:v",
+      "65",
+      "-loop",
+      "0",
+      "animated.webp",
+    ]);
+    if (exitCode !== 0)
+      throw new Error(
+        "La conversion a échoué. Essayez un extrait plus court ou une autre vidéo.",
+      );
+    const output = await instance.readFile("animated.webp");
+    await instance.deleteFile("input-video");
+    await instance.deleteFile("text-overlay.png");
+    await instance.deleteFile("animated.webp");
+    const blob = new Blob([output], { type: "image/webp" });
+    if (blob.size > 500 * 1024)
+      throw new Error(
+        "La vidéo encodée dépasse 500 Ko. Utilisez une vidéo plus courte ou moins détaillée.",
+      );
+    onProgress?.(1);
+    return blob;
   } catch (error) {
-    if (timedOut) throw new Error("La conversion a dépassé deux minutes. Réduisez la durée de l’extrait puis réessayez.");
+    if (timedOut)
+      throw new Error(
+        "La conversion a dépassé deux minutes. Réduisez la durée de l’extrait puis réessayez.",
+      );
     throw error;
   } finally {
     clearTimeout(timer);
     instance.off("progress", progressHandler);
-    if (!timedOut) await Promise.allSettled(["input-video", "text-overlay.png", "animated.webp"].map(name => instance.deleteFile(name)));
+    if (!timedOut)
+      await Promise.allSettled(
+        ["input-video", "text-overlay.png", "animated.webp"].map((name) =>
+          instance.deleteFile(name),
+        ),
+      );
   }
 }
 export async function download(blob: Blob, name: string) {

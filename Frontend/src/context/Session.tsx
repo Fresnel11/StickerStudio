@@ -78,7 +78,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setLibraryError("");
     try {
       if (user) {
-        const query = activePackId ? `?packId=${encodeURIComponent(activePackId)}` : "";
+        const query = activePackId
+          ? `?packId=${encodeURIComponent(activePackId)}`
+          : "";
         const data = await api<{
           name: string;
           stickers: Saved[];
