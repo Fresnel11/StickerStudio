@@ -13,7 +13,7 @@ const children = [
   spawn(process.execPath, [fileURLToPath(new URL("../node_modules/nodemon/bin/nodemon.js", import.meta.url)), "src/server.js"], {
     cwd: fileURLToPath(new URL("../", import.meta.url)),
     stdio: "inherit",
-    env: process.env,
+    env: process.env.development,
   }),
   spawn(
     process.execPath,
@@ -33,7 +33,7 @@ const children = [
     {
       cwd: fileURLToPath(new URL("../../Frontend", import.meta.url)),
       stdio: "inherit",
-      env: process.env,
+      env: process.env.development,
     },
   ),
 ];

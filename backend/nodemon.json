@@ -1,6 +1,6 @@
 {
-  "watch": ["src", ".env", "migrations"],
-  "ext": "js,json,env,sql",
+  "watch": ["src", ".env.development", "migrations"],
+  "ext": "js,json,env,development,sql",
   "signal": "SIGTERM",
   "delay": 300
 }

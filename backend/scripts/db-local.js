@@ -15,7 +15,7 @@ import { Client } from "pg";
 const backend = fileURLToPath(new URL("../", import.meta.url));
 const dataRoot = join(backend, "data");
 const dataPath = join(dataRoot, "postgres");
-const envPath = join(backend, ".env");
+const envPath = join(backend, ".env.development");
 const marker = join(dataRoot, "local-postgres.json");
 const action = process.argv[2] || "start";
 const bin =
@@ -33,7 +33,7 @@ const run = (program, args, capture = false) =>
 if (action === "setup" && !existsSync(marker)) {
   if (existsSync(envPath))
     throw new Error(
-      "backend/.env existe déjà. Utilisez votre PostgreSQL avec npm run db:migrate, ou réservez une configuration distincte avant une installation locale.",
+      "backend/.env.development existe déjà. Utilisez votre PostgreSQL avec npm run db:migrate, ou réservez une configuration distincte avant une installation locale.",
     );
   mkdirSync(dataRoot, { recursive: true });
   const password = randomBytes(24).toString("hex");

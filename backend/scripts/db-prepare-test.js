@@ -17,7 +17,7 @@ try {
   )
     await client.query(`CREATE DATABASE "${name}"`);
   url.pathname = "/" + name;
-  const path = new URL("../.env", import.meta.url);
+  const path = new URL("../.env.development", import.meta.url);
   let env = await readFile(path, "utf8");
   const line = "TEST_DATABASE_URL=" + url.toString();
   env = /^TEST_DATABASE_URL=/m.test(env)

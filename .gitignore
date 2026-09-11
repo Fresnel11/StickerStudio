@@ -12,3 +12,5 @@ backend/data/
 !.env.example
 !.env.development
 !.env.production
+backend/.env.production
+backend/.env.development

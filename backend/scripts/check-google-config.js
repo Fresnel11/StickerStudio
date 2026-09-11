@@ -1,6 +1,6 @@
 import {readFile} from 'node:fs/promises';
 import {parseEnv} from 'node:util';
-const config=parseEnv(await readFile(new URL('../.env',import.meta.url),'utf8'));
+const config=parseEnv(await readFile(new URL('../.env.development',import.meta.url),'utf8'));
 const origin=config.APP_ORIGIN||'http://127.0.0.1:5173';
 try {
  const response=await fetch(`${origin}/api/auth/google`,{redirect:'manual',signal:AbortSignal.timeout(5000)});
