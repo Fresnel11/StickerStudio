@@ -6,6 +6,7 @@ import {
   Link,
   useLocation,
 } from "react-router-dom";
+import { Analytics } from "@vercel/analytics/react";
 import { SessionProvider, useSession } from "./context/Session";
 import Header from "./components/Header";
 import Home from "./pages/Home";
@@ -75,6 +76,7 @@ export default function App() {
       <SessionProvider>
         <Site />
       </SessionProvider>
+      <Analytics />
     </BrowserRouter>
   );
 }

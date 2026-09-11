@@ -210,8 +210,8 @@ export default function Studio() {
   const [s, setS] = useState<Settings>(initialSettings);
   const [, refreshHistory] = useState(0);
   const [photo, setPhoto] = useState<HTMLImageElement | null>(null);
-    const [animatedSticker, setAnimatedSticker] = useState<string | null>(null);
-    const [animatedPreview, setAnimatedPreview] = useState<string | null>(null);
+  const [animatedSticker, setAnimatedSticker] = useState<string | null>(null);
+  const [animatedPreview, setAnimatedPreview] = useState<string | null>(null);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoDuration, setVideoDuration] = useState(0);
   const [videoStart, setVideoStart] = useState(0);
@@ -230,20 +230,35 @@ export default function Studio() {
   const [tab, setTab] = useState(storedDraft.tab || "image");
   const [mobilePanel, setMobilePanel] = useState<string | null>(null);
   const [mobileRange, setMobileRange] = useState<string | null>(null);
-  const mobileControls: [string, keyof Settings, number, number, string][] = tab === "text" ? [
-    ["Taille", "textSize", 12, 140, " px"], ["Zoom", "textZoom", 30, 180, "%"],
-    ["Rotation", "textRotation", -180, 180, "°"], ["Horizontal", "textX", -256, 256, " px"],
-    ["Vertical", "textY", -418, 94, " px"], ["Contour", "textOutline", 0, 16, " px"],
-  ] : [["Zoom", "zoom", 30, 180, "%"], ["Rotation", "rotation", -45, 45, "°"],
-    ["Horizontal", "x", -180, 180, " px"], ["Vertical", "y", -180, 180, " px"], ["Contour", "outline", 0, 16, " px"]];
+  const mobileControls: [string, keyof Settings, number, number, string][] =
+    tab === "text"
+      ? [
+          ["Taille", "textSize", 12, 140, " px"],
+          ["Zoom", "textZoom", 30, 180, "%"],
+          ["Rotation", "textRotation", -180, 180, "°"],
+          ["Horizontal", "textX", -256, 256, " px"],
+          ["Vertical", "textY", -418, 94, " px"],
+          ["Contour", "textOutline", 0, 16, " px"],
+        ]
+      : [
+          ["Zoom", "zoom", 30, 180, "%"],
+          ["Rotation", "rotation", -45, 45, "°"],
+          ["Horizontal", "x", -180, 180, " px"],
+          ["Vertical", "y", -180, 180, " px"],
+          ["Contour", "outline", 0, 16, " px"],
+        ];
   function openMobilePanel(panel: string) {
-    setMobilePanel(previous => previous === panel ? null : panel);
+    setMobilePanel((previous) => (previous === panel ? null : panel));
     setMobileRange(null);
     if (["image", "text", "emoji"].includes(panel)) setTab(panel);
-    document.getElementById("atelier")?.scrollIntoView({ block: "start", behavior: "smooth" });
+    document
+      .getElementById("atelier")
+      ?.scrollIntoView({ block: "start", behavior: "smooth" });
   }
   useEffect(() => {
-    const close = (event: KeyboardEvent) => { if (event.key === "Escape") setMobilePanel(null); };
+    const close = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobilePanel(null);
+    };
     window.addEventListener("keydown", close);
     return () => window.removeEventListener("keydown", close);
   }, []);
@@ -309,7 +324,14 @@ export default function Studio() {
     try {
       localStorage.setItem(
         `${studioDraftKey}:${draftScope}`,
-        JSON.stringify({ ...s, tab, preview, previewDevice, videoStart, videoEnd }),
+        JSON.stringify({
+          ...s,
+          tab,
+          preview,
+          previewDevice,
+          videoStart,
+          videoEnd,
+        }),
       );
     } catch {
       setNotice(
@@ -319,9 +341,11 @@ export default function Studio() {
   }, [s, tab, preview, previewDevice, videoStart, videoEnd]);
   useEffect(() => {
     if (!restoredImages.current && !photo && !videoFile) return;
-    void saveStudioImages(photo, original.current, videoFile, draftScope).catch(() => {
-      setNotice("L’image ne peut pas être sauvegardée dans ce navigateur.");
-    });
+    void saveStudioImages(photo, original.current, videoFile, draftScope).catch(
+      () => {
+        setNotice("L’image ne peut pas être sauvegardée dans ce navigateur.");
+      },
+    );
   }, [photo, videoFile]);
   const canvas = useRef<HTMLCanvasElement>(null);
   const input = useRef<HTMLInputElement>(null);
@@ -337,9 +361,13 @@ export default function Studio() {
   useEffect(() => {
     setAnimatedSticker(null);
   }, [s, videoStart, videoEnd]);
-  const historyGesture = useRef<{ key: keyof Settings; recorded: boolean } | null>(null);
+  const historyGesture = useRef<{
+    key: keyof Settings;
+    recorded: boolean;
+  } | null>(null);
   function beginGesture(key: keyof Settings) {
-    if (historyGesture.current?.key !== key) historyGesture.current = { key, recorded: false };
+    if (historyGesture.current?.key !== key)
+      historyGesture.current = { key, recorded: false };
   }
   function endGesture() {
     historyGesture.current = null;
@@ -347,7 +375,11 @@ export default function Studio() {
   useEffect(() => {
     const releasePointer = () => {
       // Text and color edits form a session until focus leaves the field.
-      if (historyGesture.current?.key !== "text" && historyGesture.current?.key !== "color") endGesture();
+      if (
+        historyGesture.current?.key !== "text" &&
+        historyGesture.current?.key !== "color"
+      )
+        endGesture();
     };
     window.addEventListener("pointerup", releasePointer);
     window.addEventListener("pointercancel", releasePointer);
@@ -371,7 +403,12 @@ export default function Studio() {
       0,
       settingsHistoryIndex.current + (replace ? 0 : 1),
     );
-    if (!replace) nextHistory[nextHistory.length - 1] = { settings: s, photo, original: original.current };
+    if (!replace)
+      nextHistory[nextHistory.length - 1] = {
+        settings: s,
+        photo,
+        original: original.current,
+      };
     nextHistory.push({
       settings: next,
       photo: nextPhoto,
@@ -386,7 +423,8 @@ export default function Studio() {
     refreshHistory((value) => value + 1);
   }
   const update = <K extends keyof Settings>(key: K, value: Settings[K]) =>
-    s[key] !== value && commitSettings({ ...s, [key]: value }, photo, original.current, key);
+    s[key] !== value &&
+    commitSettings({ ...s, [key]: value }, photo, original.current, key);
   function undoSettings() {
     endGesture();
     if (settingsHistoryIndex.current === 0) return;
@@ -410,12 +448,25 @@ export default function Studio() {
   }
   useEffect(() => {
     function handleShortcut(event: KeyboardEvent) {
-      if (busy || cropping || help || event.defaultPrevented || event.isComposing || event.altKey || !(event.ctrlKey || event.metaKey)) return;
+      if (
+        busy ||
+        cropping ||
+        help ||
+        event.defaultPrevented ||
+        event.isComposing ||
+        event.altKey ||
+        !(event.ctrlKey || event.metaKey)
+      )
+        return;
       const target = event.target;
-      if (target instanceof HTMLElement && (
-        target.isContentEditable || target.closest("textarea, select") ||
-        (target instanceof HTMLInputElement && !["range", "checkbox", "radio", "button"].includes(target.type))
-      )) return;
+      if (
+        target instanceof HTMLElement &&
+        (target.isContentEditable ||
+          target.closest("textarea, select") ||
+          (target instanceof HTMLInputElement &&
+            !["range", "checkbox", "radio", "button"].includes(target.type)))
+      )
+        return;
       const key = event.key.toLowerCase();
       if (key === "z" || key === "y") {
         event.preventDefault();
@@ -535,7 +586,8 @@ export default function Studio() {
     if (!videoFile) return;
     await run(async () => {
       const duration = videoEnd - videoStart;
-      if (duration < 1) throw new Error("Sélectionnez au moins 1 seconde de vidéo.");
+      if (duration < 1)
+        throw new Error("Sélectionnez au moins 1 seconde de vidéo.");
       setVideoProgress(0);
       const blob = await encodeAnimatedWebp(
         videoFile,
@@ -561,8 +613,14 @@ export default function Studio() {
   }
   async function currentStickerBlob() {
     if (animatedSticker) return (await fetch(animatedSticker)).blob();
-    if (videoFile) throw new Error("Préparez le sticker animé avant de le télécharger ou de l’ajouter au pack.");
-    if (!canvas.current) throw new Error("L’aperçu n’est pas encore prêt. Réessayez dans un instant.");
+    if (videoFile)
+      throw new Error(
+        "Préparez le sticker animé avant de le télécharger ou de l’ajouter au pack.",
+      );
+    if (!canvas.current)
+      throw new Error(
+        "L’aperçu n’est pas encore prêt. Réessayez dans un instant.",
+      );
     return encodeWebp(canvas.current);
   }
   async function addSticker() {
@@ -632,7 +690,18 @@ export default function Studio() {
   }
   const range = (
     label: string,
-    key: "zoom" | "rotation" | "outline" | "textSize" | "textZoom" | "textRotation" | "textX" | "textY" | "textOutline" | "x" | "y",
+    key:
+      | "zoom"
+      | "rotation"
+      | "outline"
+      | "textSize"
+      | "textZoom"
+      | "textRotation"
+      | "textX"
+      | "textY"
+      | "textOutline"
+      | "x"
+      | "y",
     min: number,
     max: number,
     suffix = "",
@@ -650,7 +719,19 @@ export default function Studio() {
         value={s[key]}
         onPointerDown={() => beginGesture(key)}
         onKeyDown={(event) => {
-          if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End", "PageUp", "PageDown"].includes(event.key)) beginGesture(key);
+          if (
+            [
+              "ArrowLeft",
+              "ArrowRight",
+              "ArrowUp",
+              "ArrowDown",
+              "Home",
+              "End",
+              "PageUp",
+              "PageDown",
+            ].includes(event.key)
+          )
+            beginGesture(key);
         }}
         onKeyUp={endGesture}
         onBlur={endGesture}
@@ -692,20 +773,61 @@ export default function Studio() {
           </div>
         )}
         <div className="workspace" id="atelier">
-          <aside className={`tools panel mobile-sheet ${["image", "text", "emoji"].includes(mobilePanel ?? "") ? "sheet-open" : ""} ${mobileRange ? "has-range" : ""}`}>
+          <aside
+            className={`tools panel mobile-sheet ${["image", "text", "emoji"].includes(mobilePanel ?? "") ? "sheet-open" : ""} ${mobileRange ? "has-range" : ""}`}
+          >
             <div className="mobile-sheet-heading">
-              <strong>{tab === "text" ? "Texte" : tab === "emoji" ? "Emojis" : "Image"}</strong>
-              <button aria-label="Fermer les réglages" onClick={() => setMobilePanel(null)}><X size={20} /></button>
+              <strong>
+                {tab === "text"
+                  ? "Texte"
+                  : tab === "emoji"
+                    ? "Emojis"
+                    : "Image"}
+              </strong>
+              <button
+                aria-label="Fermer les réglages"
+                onClick={() => setMobilePanel(null)}
+              >
+                <X size={20} />
+              </button>
             </div>
-            {tab !== "emoji" && <div className="mobile-options">
-              <button aria-pressed={!mobileRange} onClick={() => setMobileRange(null)}>{tab === "text" ? "Saisie et couleur" : "Importer / Rogner"}</button>
-              {mobileControls.map(([label, key]) => <button key={key} disabled={tab === "image" && !!videoFile}
-                aria-pressed={mobileRange === key} onClick={() => setMobileRange(key)}>{label}</button>)}
-            </div>}
-            {mobileRange && <div className="mobile-range-control" key={mobileRange}>
-              {mobileControls.filter(([, key]) => key === mobileRange).map(([label, key, min, max, suffix]) =>
-                <div key={key}>{range(label, key as Parameters<typeof range>[1], min, max, suffix)}</div>)}
-            </div>}
+            {tab !== "emoji" && (
+              <div className="mobile-options">
+                <button
+                  aria-pressed={!mobileRange}
+                  onClick={() => setMobileRange(null)}
+                >
+                  {tab === "text" ? "Saisie et couleur" : "Importer / Rogner"}
+                </button>
+                {mobileControls.map(([label, key]) => (
+                  <button
+                    key={key}
+                    disabled={tab === "image" && !!videoFile}
+                    aria-pressed={mobileRange === key}
+                    onClick={() => setMobileRange(key)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+            {mobileRange && (
+              <div className="mobile-range-control" key={mobileRange}>
+                {mobileControls
+                  .filter(([, key]) => key === mobileRange)
+                  .map(([label, key, min, max, suffix]) => (
+                    <div key={key}>
+                      {range(
+                        label,
+                        key as Parameters<typeof range>[1],
+                        min,
+                        max,
+                        suffix,
+                      )}
+                    </div>
+                  ))}
+              </div>
+            )}
             <div className="panel-heading">
               <span className="step">1</span>
               <h2>À vous de créer</h2>
@@ -809,7 +931,11 @@ export default function Studio() {
                   </p>
                   <div className="divider" />
                   <fieldset className="image-settings" disabled={!!videoFile}>
-                    <legend>{videoFile ? "Réglages image indisponibles pour une vidéo" : "Réglages de l’image"}</legend>
+                    <legend>
+                      {videoFile
+                        ? "Réglages image indisponibles pour une vidéo"
+                        : "Réglages de l’image"}
+                    </legend>
                     {range("Zoom", "zoom", 30, 180, "%")}
                     {range("Rotation", "rotation", -45, 45, "°")}
                     {photo && (
@@ -834,7 +960,8 @@ export default function Studio() {
                   <h3>Faites parler votre sticker</h3>
                   {videoFile && (
                     <p className="mode-hint">
-                      Le texte sera incrusté dans chaque image de la vidéo lors de la conversion.
+                      Le texte sera incrusté dans chaque image de la vidéo lors
+                      de la conversion.
                     </p>
                   )}
                   <label className="field-label">
@@ -845,15 +972,30 @@ export default function Studio() {
                       placeholder="Votre meilleure réplique…"
                       onFocus={() => beginGesture("text")}
                       onBlur={endGesture}
-                      onChange={(e) => { beginGesture("text"); update("text", e.target.value); }}
+                      onChange={(e) => {
+                        beginGesture("text");
+                        update("text", e.target.value);
+                      }}
                     />
                   </label>
                   <p className="hint">{s.text.length}/32 caractères</p>
                   {range("Taille du texte", "textSize", 12, 140, " px")}
                   {range("Zoom du texte", "textZoom", 30, 180, "%")}
                   {range("Rotation du texte", "textRotation", -180, 180, "°")}
-                  {range("Position horizontale du texte", "textX", -256, 256, " px")}
-                  {range("Position verticale du texte", "textY", -418, 94, " px")}
+                  {range(
+                    "Position horizontale du texte",
+                    "textX",
+                    -256,
+                    256,
+                    " px",
+                  )}
+                  {range(
+                    "Position verticale du texte",
+                    "textY",
+                    -418,
+                    94,
+                    " px",
+                  )}
                   {range("Contour blanc du texte", "textOutline", 0, 16, " px")}
                   <label className="field-label">
                     Couleur du texte
@@ -863,7 +1005,10 @@ export default function Studio() {
                       value={s.color}
                       onFocus={() => beginGesture("color")}
                       onBlur={endGesture}
-                      onChange={(e) => { beginGesture("color"); update("color", e.target.value); }}
+                      onChange={(e) => {
+                        beginGesture("color");
+                        update("color", e.target.value);
+                      }}
                     />
                   </label>
                   <div className="swatches">
@@ -894,7 +1039,8 @@ export default function Studio() {
                   </p>
                   {videoFile && (
                     <p className="mode-hint">
-                      Choisir un emoji remplace la vidéo et démarre un nouveau sticker.
+                      Choisir un emoji remplace la vidéo et démarre un nouveau
+                      sticker.
                     </p>
                   )}
                   <div className="emoji-picker">
@@ -953,112 +1099,141 @@ export default function Studio() {
           </aside>
           <section className="editor panel">
             <div className="preview-surface">
-            <div className="editor-heading">
-              <div>
-                <span className="live-dot" /> Votre sticker, en direct
+              <div className="editor-heading">
+                <div>
+                  <span className="live-dot" /> Votre sticker, en direct
+                </div>
+                <div className="history-actions">
+                  <button
+                    className="icon-button"
+                    title="Annuler la dernière modification"
+                    aria-label="Annuler la dernière modification"
+                    disabled={settingsHistoryIndex.current === 0}
+                    onClick={undoSettings}
+                  >
+                    <Undo2 size={17} />
+                  </button>
+                  <button
+                    className="icon-button"
+                    title="Rétablir la modification"
+                    aria-label="Rétablir la modification"
+                    disabled={
+                      settingsHistoryIndex.current >=
+                      settingsHistory.current.length - 1
+                    }
+                    onClick={redoSettings}
+                  >
+                    <Redo2 size={17} />
+                  </button>
+                  <button
+                    className="icon-button"
+                    title="Réinitialiser les réglages"
+                    aria-label="Réinitialiser les réglages"
+                    onClick={() => {
+                      commitSettings(
+                        {
+                          ...defaults,
+                          ...(original.current
+                            ? { text: "", rotation: 0 }
+                            : {}),
+                        },
+                        original.current,
+                        original.current,
+                      );
+                    }}
+                  >
+                    <RotateCcw size={17} />
+                  </button>
+                </div>
               </div>
-              <div className="history-actions">
-                <button
-                  className="icon-button"
-                  title="Annuler la dernière modification"
-                  aria-label="Annuler la dernière modification"
-                  disabled={settingsHistoryIndex.current === 0}
-                  onClick={undoSettings}
-                >
-                  <Undo2 size={17} />
-                </button>
-                <button
-                  className="icon-button"
-                  title="Rétablir la modification"
-                  aria-label="Rétablir la modification"
-                  disabled={
-                    settingsHistoryIndex.current >=
-                    settingsHistory.current.length - 1
-                  }
-                  onClick={redoSettings}
-                >
-                  <Redo2 size={17} />
-                </button>
-                <button
-                  className="icon-button"
-                  title="Réinitialiser les réglages"
-                  aria-label="Réinitialiser les réglages"
-                  onClick={() => {
-                    commitSettings(
-                      {
-                        ...defaults,
-                        ...(original.current ? { text: "", rotation: 0 } : {}),
-                      },
-                      original.current,
-                      original.current,
-                    );
-                  }}
-                >
-                  <RotateCcw size={17} />
-                </button>
-              </div>
-            </div>
-            <div
-              className={`stage ${preview ? `chat-stage chat-stage-${previewDevice}` : ""}`}
-            >
-              <div className="stage-label">
-                {preview
-                  ? "APERÇU CONVERSATION"
-                  : "LAISSEZ PARLER VOTRE CRÉATIVITÉ"}
-              </div>
-              {preview && (
-                <div className={`device-frame device-frame-${previewDevice}`}>
-                  <div className="device-chrome">
-                    <span className="device-lights">
-                      <i />
-                      <i />
-                      <i />
-                    </span>
-                    <strong>WhatsApp</strong>
-                    <span className="device-status">•••</span>
-                  </div>
-                  <div className="device-chat">
-                    <div className="chat-bubble">
-                      Alors, cette journée ? <small>14:32</small>
+              <div
+                className={`stage ${preview ? `chat-stage chat-stage-${previewDevice}` : ""}`}
+              >
+                <div className="stage-label">
+                  {preview
+                    ? "APERÇU CONVERSATION"
+                    : "LAISSEZ PARLER VOTRE CRÉATIVITÉ"}
+                </div>
+                {preview && (
+                  <div className={`device-frame device-frame-${previewDevice}`}>
+                    <div className="device-chrome">
+                      <span className="device-lights">
+                        <i />
+                        <i />
+                        <i />
+                      </span>
+                      <strong>WhatsApp</strong>
+                      <span className="device-status">•••</span>
                     </div>
-                    {animatedSticker ? (
-                      <img className="animated-sticker" src={animatedSticker} alt="Aperçu du sticker animé" />
-                    ) : videoFile && animatedPreview ? (
-                      <div className="video-composition"><video
+                    <div className="device-chat">
+                      <div className="chat-bubble">
+                        Alors, cette journée ? <small>14:32</small>
+                      </div>
+                      {animatedSticker ? (
+                        <img
+                          className="animated-sticker"
+                          src={animatedSticker}
+                          alt="Aperçu du sticker animé"
+                        />
+                      ) : videoFile && animatedPreview ? (
+                        <div className="video-composition">
+                          <video
+                            className="video-sticker-preview"
+                            src={animatedPreview}
+                            ref={sourceVideo}
+                            muted
+                            playsInline
+                          />
+                          <canvas
+                            ref={videoTextCanvas}
+                            className="video-text-overlay"
+                            aria-label="Texte sur la vidéo"
+                          />
+                        </div>
+                      ) : (
+                        <canvas
+                          ref={canvas}
+                          aria-label="Aperçu de votre sticker"
+                        />
+                      )}
+                    </div>
+                  </div>
+                )}
+                {!preview &&
+                  (animatedSticker ? (
+                    <img
+                      className="animated-sticker"
+                      src={animatedSticker}
+                      alt="Aperçu du sticker animé"
+                    />
+                  ) : videoFile && animatedPreview ? (
+                    <div className="video-composition">
+                      <video
                         className="video-sticker-preview"
                         src={animatedPreview}
                         ref={sourceVideo}
                         muted
                         playsInline
-                      /><canvas ref={videoTextCanvas} className="video-text-overlay" aria-label="Texte sur la vidéo" /></div>
-                    ) : (
-                      <canvas ref={canvas} aria-label="Aperçu de votre sticker" />
-                    )}
-                  </div>
-                </div>
-              )}
-              {!preview && (
-                animatedSticker ? (
-                  <img className="animated-sticker" src={animatedSticker} alt="Aperçu du sticker animé" />
-                ) : videoFile && animatedPreview ? (
-                  <div className="video-composition"><video
-                    className="video-sticker-preview"
-                    src={animatedPreview}
-                    ref={sourceVideo}
-                    muted
-                    playsInline
-                  /><canvas ref={videoTextCanvas} className="video-text-overlay" aria-label="Texte sur la vidéo" /></div>
-                ) : (
-                  <canvas ref={canvas} aria-label="Aperçu de votre sticker" />
-                )
-              )}
-              <span className="dimensions">
-                512 × 512 px · fond transparent
-              </span>
-            </div>
+                      />
+                      <canvas
+                        ref={videoTextCanvas}
+                        className="video-text-overlay"
+                        aria-label="Texte sur la vidéo"
+                      />
+                    </div>
+                  ) : (
+                    <canvas ref={canvas} aria-label="Aperçu de votre sticker" />
+                  ))}
+                <span className="dimensions">
+                  512 × 512 px · fond transparent
+                </span>
+              </div>
             </div>
             {videoFile && animatedPreview && (
-              <section className={`video-timeline mobile-sheet ${mobilePanel === "video" ? "sheet-open" : ""}`} aria-label="Timeline vidéo">
+              <section
+                className={`video-timeline mobile-sheet ${mobilePanel === "video" ? "sheet-open" : ""}`}
+                aria-label="Timeline vidéo"
+              >
                 <div className="video-timeline-topline">
                   <strong>Timeline vidéo</strong>
                   <span className="timeline-time-pill">
@@ -1066,11 +1241,17 @@ export default function Studio() {
                   </span>
                 </div>
                 <div className="video-ruler" aria-hidden="true">
-                  {Array.from({ length: Math.ceil(videoDuration) + 1 }, (_, index) => (
-                    <span key={index} style={{ left: `${(index / videoDuration) * 100}%` }}>
-                      {index}s
-                    </span>
-                  ))}
+                  {Array.from(
+                    { length: Math.ceil(videoDuration) + 1 },
+                    (_, index) => (
+                      <span
+                        key={index}
+                        style={{ left: `${(index / videoDuration) * 100}%` }}
+                      >
+                        {index}s
+                      </span>
+                    ),
+                  )}
                 </div>
                 <div className="video-track">
                   <div
@@ -1090,7 +1271,13 @@ export default function Studio() {
                     disabled={busy}
                     aria-label="Début de l’extrait"
                     onChange={(event) =>
-                      setVideoStart(Math.max(0, videoEnd - 10, Math.min(Number(event.target.value), videoEnd - 1)))
+                      setVideoStart(
+                        Math.max(
+                          0,
+                          videoEnd - 10,
+                          Math.min(Number(event.target.value), videoEnd - 1),
+                        ),
+                      )
                     }
                   />
                   <input
@@ -1103,15 +1290,26 @@ export default function Studio() {
                     disabled={busy}
                     aria-label="Fin de l’extrait"
                     onChange={(event) =>
-                      setVideoEnd(Math.min(videoDuration, videoStart + 10, Math.max(videoStart + 1, Number(event.target.value))))
+                      setVideoEnd(
+                        Math.min(
+                          videoDuration,
+                          videoStart + 10,
+                          Math.max(videoStart + 1, Number(event.target.value)),
+                        ),
+                      )
                     }
                   />
                 </div>
                 <div className="video-timeline-footer">
-                  <span>Extrait : {(videoEnd - videoStart).toFixed(1)} s · min. 1 s · max. 10 s</span>
+                  <span>
+                    Extrait : {(videoEnd - videoStart).toFixed(1)} s · min. 1 s
+                    · max. 10 s
+                  </span>
                   <div className="video-convert-status" aria-live="polite">
                     {busy
-                      ? (videoProgress < 0 ? "Chargement du moteur vidéo…" : `Conversion : ${Math.round(videoProgress * 100)} %`)
+                      ? videoProgress < 0
+                        ? "Chargement du moteur vidéo…"
+                        : `Conversion : ${Math.round(videoProgress * 100)} %`
                       : videoProgress >= 1
                         ? "Conversion terminée"
                         : "Prêt à convertir"}
@@ -1127,7 +1325,9 @@ export default function Studio() {
                 <div className="video-progress" aria-hidden="true">
                   <div
                     className="video-progress-bar"
-                    style={{ width: `${Math.round(Math.max(0, videoProgress) * 100)}%` }}
+                    style={{
+                      width: `${Math.round(Math.max(0, videoProgress) * 100)}%`,
+                    }}
                   />
                 </div>
               </section>
@@ -1180,7 +1380,9 @@ export default function Studio() {
                 </div>
               )}
             </div>
-            <div className={`export-bar mobile-sheet ${mobilePanel === "export" ? "sheet-open" : ""}`}>
+            <div
+              className={`export-bar mobile-sheet ${mobilePanel === "export" ? "sheet-open" : ""}`}
+            >
               <div>
                 <strong>Prêt à faire sourire ?</strong>
                 <span>Votre prochaine réaction préférée est ici.</span>
@@ -1188,7 +1390,12 @@ export default function Studio() {
               <div className="export-actions">
                 <button
                   className="secondary"
-                  disabled={busy || libraryLoading || !!libraryError || saved.length >= 6}
+                  disabled={
+                    busy ||
+                    libraryLoading ||
+                    !!libraryError ||
+                    saved.length >= 6
+                  }
                   onClick={addSticker}
                 >
                   <Plus size={17} /> Au pack
@@ -1218,10 +1425,20 @@ export default function Studio() {
             { id: "image", label: "Image", icon: ImagePlus },
             { id: "text", label: "Texte", icon: Type },
             { id: "emoji", label: "Emojis", icon: Smile },
-            ...(videoFile ? [{ id: "video", label: "Extrait", icon: Sticker }] : []),
+            ...(videoFile
+              ? [{ id: "video", label: "Extrait", icon: Sticker }]
+              : []),
             { id: "export", label: "Exporter", icon: ArrowDownToLine },
-          ].map(({ id, label, icon: Icon }) => <button key={id} aria-expanded={mobilePanel === id}
-            onClick={() => openMobilePanel(id)}><Icon size={21} /><span>{label}</span></button>)}
+          ].map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              aria-expanded={mobilePanel === id}
+              onClick={() => openMobilePanel(id)}
+            >
+              <Icon size={21} />
+              <span>{label}</span>
+            </button>
+          ))}
         </nav>
         <section className="pack panel" ref={pack}>
           <div className="pack-header">
@@ -1267,7 +1484,11 @@ export default function Studio() {
                 className="secondary"
                 onClick={openCreatePack}
                 disabled={busy || packs.length >= 5}
-                title={packs.length >= 5 ? "Limite de 5 packs atteinte" : "Créer un pack"}
+                title={
+                  packs.length >= 5
+                    ? "Limite de 5 packs atteinte"
+                    : "Créer un pack"
+                }
               >
                 <Plus size={16} /> Nouveau pack
               </button>
@@ -1353,7 +1574,10 @@ export default function Studio() {
         </div>
       )}
       {createPackOpen && (
-        <div className="modal-backdrop" onClick={() => setCreatePackOpen(false)}>
+        <div
+          className="modal-backdrop"
+          onClick={() => setCreatePackOpen(false)}
+        >
           <section
             className="modal create-pack-modal"
             role="dialog"
@@ -1368,7 +1592,9 @@ export default function Studio() {
             >
               <X size={20} />
             </button>
-            <span className="pack-icon"><FolderHeart size={22} /></span>
+            <span className="pack-icon">
+              <FolderHeart size={22} />
+            </span>
             <h2 id="create-pack-title">Créer un pack</h2>
             <label className="field-label" htmlFor="new-pack-name">
               Nom du pack
@@ -1383,7 +1609,11 @@ export default function Studio() {
                 }}
               />
             </label>
-            <button className="primary" onClick={() => void submitCreatePack()} disabled={busy}>
+            <button
+              className="primary"
+              onClick={() => void submitCreatePack()}
+              disabled={busy}
+            >
               Créer le pack <Plus size={16} />
             </button>
           </section>

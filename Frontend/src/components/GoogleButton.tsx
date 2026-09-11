@@ -101,10 +101,31 @@ export default function GoogleButton({ link = false }: { link?: boolean }) {
                 d="M24 11.2c3 0 5.6 1 7.7 3l5.8-5.8A19.4 19.4 0 0 0 24 3 20.4 20.4 0 0 0 5.7 14.2l6.9 5.4C14.2 14.8 18.7 11.2 24 11.2Z"
               />
             </svg>
-            {connecting ? "Connexion dans le navigateur…" : link ? "Associer mon compte Google" : "Continuer avec Google"}
+            {connecting
+              ? "Connexion dans le navigateur…"
+              : link
+                ? "Associer mon compte Google"
+                : "Continuer avec Google"}
           </button>
-          {connecting && <p className="google-hint">Terminez la connexion dans le navigateur, puis revenez dans l’application. <button onClick={() => { connection.current?.abort(); setConnecting(false); }}>Annuler</button></p>}
-          {nativeError && <p className="form-error" role="alert">{nativeError}</p>}
+          {connecting && (
+            <p className="google-hint">
+              Terminez la connexion dans le navigateur, puis revenez dans
+              l’application.{" "}
+              <button
+                onClick={() => {
+                  connection.current?.abort();
+                  setConnecting(false);
+                }}
+              >
+                Annuler
+              </button>
+            </p>
+          )}
+          {nativeError && (
+            <p className="form-error" role="alert">
+              {nativeError}
+            </p>
+          )}
           {provider && !provider.google && (
             <p className="google-hint">
               La connexion Google sera bientôt disponible.
