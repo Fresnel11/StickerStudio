@@ -41,6 +41,21 @@ Pour un autre port, changez `APP_ORIGIN` et l’URI autorisée dans Google. Pour
 
 ## 3. Vérifier
 
+### Production : frontend Vercel et API Render
+
+Configurez ces deux variables dans **Render → service backend → Environment** :
+
+```dotenv
+APP_ORIGIN=https://sticker-studio-ruby.vercel.app
+GOOGLE_REDIRECT_URI=https://stickerstudio.onrender.com/api/auth/google/callback
+```
+
+Ajoutez exactement la seconde URL aux **URI de redirection autorisées** du client Web dans Google Auth Platform. Enregistrez les variables Render et redéployez le backend. Le fichier local `backend/.env.production` ne modifie pas les variables du service Render.
+
+Le retour Google doit arriver sur le backend qui a démarré la connexion et posé le cookie OAuth. Le frontend Vercel ne traite pas `/api/auth/google/callback` : son routage renvoie cette adresse à React et affiche une page introuvable. `APP_ORIGIN` reste l'adresse du frontend, où le backend redirige après la connexion. Cette configuration sert au web et à l'application Android.
+
+Fermez l'ancien parcours Google et recommencez depuis le bouton de connexion après le redéploiement.
+
 - « Continuer avec Google » devient actif sur les pages de connexion et d’inscription.
 - Un nouveau compte Google crée un compte Sticker Studio sans mot de passe local.
 - Une connexion ultérieure retrouve le même compte grâce à l’identifiant Google `sub`, et donc la même collection.
