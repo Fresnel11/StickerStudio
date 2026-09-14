@@ -1385,3 +1385,6 @@
     box-shadow: 0 8px 20px #49345b08;
   }
 }
+.whatsapp-export { padding: 16px 20px; border-bottom: 1px solid #ece8f4; }
+.whatsapp-export > p { font-size: 13px; line-height: 1.5; margin-top: 10px; }
+.whatsapp-choices { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }

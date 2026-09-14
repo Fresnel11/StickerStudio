@@ -11,6 +11,7 @@ export function isAllowedOrigin(origin) {
     if (list.includes(origin)) return true;
   }
   if (
+    origin === "https://localhost" ||
     origin === "http://127.0.0.1:5173" ||
     origin === "http://localhost:5173" ||
     origin === "http://127.0.0.1:3000" ||

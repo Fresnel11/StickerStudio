@@ -1,3 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">StickerStudio</string>
+    <string name="app_name">Sticker Studio</string>
+    <string name="title_activity_main">Sticker Studio</string>
+    <string name="package_name">com.stickerstudio</string>
+    <string name="custom_url_scheme">com.stickerstudio</string>
 </resources>

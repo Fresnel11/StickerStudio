@@ -42,6 +42,8 @@ import {
 import { useSession } from "../context/Session";
 import AccountBanner from "../components/AccountBanner";
 import ImageCropper from "../components/ImageCropper";
+import WhatsAppButton from "../components/WhatsAppButton";
+import { supportsWhatsApp } from "../lib/native";
 
 const emojiOptions = [
   "😎",
@@ -1224,6 +1226,7 @@ export default function Studio() {
             onClick={() => openMobilePanel(id)}><Icon size={21} /><span>{label}</span></button>)}
         </nav>
         <section className="pack panel" ref={pack}>
+          <WhatsAppButton name={packName} stickers={saved} sourceId={user ? `${user.id}:${activePackId || "default"}` : "guest"} disabled={busy || libraryLoading || !!libraryError} />
           <div className="pack-header">
             <div className="pack-title">
               <span className="pack-icon">
@@ -1438,8 +1441,7 @@ export default function Studio() {
             <p>
               Le ZIP est une archive de vos images, pas un pack installable
               directement. Préparez 3 à 6 stickers pour votre pack.
-              L’installation directe depuis cet atelier n’est pas encore
-              disponible.
+              {supportsWhatsApp() ? "Utilisez « Ajouter à WhatsApp » dans votre pack, puis confirmez l’ajout dans WhatsApp." : "L’installation directe depuis le site web n’est pas disponible."}
             </p>
             <button className="primary" onClick={() => setHelp(false)}>
               À moi de créer <ArrowRight size={16} />

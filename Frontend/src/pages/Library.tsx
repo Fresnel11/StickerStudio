@@ -13,11 +13,13 @@ import { download } from "../sticker";
 import { useSession } from "../context/Session";
 import AccountBanner from "../components/AccountBanner";
 import GoogleButton from "../components/GoogleButton";
+import WhatsAppButton from "../components/WhatsAppButton";
 export default function Library() {
   const {
     user,
     saved,
     packName,
+    activePackId,
     libraryError,
     libraryLoading,
     reloadLibrary,
@@ -73,6 +75,7 @@ export default function Library() {
         </div>
       ) : (
         <section className="library-panel panel">
+          <WhatsAppButton name={name} stickers={saved} sourceId={`${user.id}:${activePackId || "default"}`} disabled={busy || libraryLoading || !!libraryError} />
           <div className="library-toolbar">
             <div className="library-pack-name">
               <span className="pack-icon">

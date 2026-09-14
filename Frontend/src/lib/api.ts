@@ -1,3 +1,4 @@
+import { Capacitor, CapacitorHttp } from "@capacitor/core";
 export type User = { id: string; name: string; email: string };
 export type Saved = { id: string; data: string };
 
@@ -19,15 +20,42 @@ export async function api<T>(
 ): Promise<T> {
   let response: Response;
   try {
-    response = await fetch(getApiUrl(path), {
-      ...options,
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Sticker-Studio": "1",
-        ...options.headers,
-      },
-    });
+    if (Capacitor.isNativePlatform()) {
+      options.signal?.throwIfAborted();
+      const native = await CapacitorHttp.request({
+        url: new URL(getApiUrl(path), window.location.origin).href,
+        method: options.method || "GET",
+        headers: Object.fromEntries(
+          new Headers({
+            "Content-Type": "application/json",
+            "X-Sticker-Studio": "1",
+            ...options.headers,
+          }).entries(),
+        ),
+        ...(options.body ? { data: JSON.parse(String(options.body)) } : {}),
+        responseType: "json",
+        connectTimeout: 15000,
+        readTimeout: 30000,
+      });
+      options.signal?.throwIfAborted();
+      response = new Response(
+        native.status === 204 ? null : JSON.stringify(native.data),
+        {
+          status: native.status,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    } else {
+      response = await fetch(getApiUrl(path), {
+        ...options,
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Sticker-Studio": "1",
+          ...options.headers,
+        },
+      });
+    }
   } catch {
     throw new Error(
       "Connexion au serveur impossible. Vérifiez votre connexion et réessayez.",

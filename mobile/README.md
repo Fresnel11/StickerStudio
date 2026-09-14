@@ -1,41 +1,65 @@
-﻿# Sticker Studio mobile
+# Sticker Studio Android — Capacitor
 
-Projet React Native + TypeScript, avec projets natifs Android et iOS. Cette base affiche un écran de démarrage ; elle ne contient pas encore les fonctionnalités du site.
+L’APK embarque les pages React de `../Frontend` : accueil, inscription, connexion, atelier et collection. Le backend Express/PostgreSQL reste partagé avec le site. Le plugin Android ajoute l’enregistrement de fichiers et l’intégration des packs WhatsApp.
 
-## Android Studio sur Windows
+## Construire et lancer
 
-1. Ouvrir le dossier `mobile/android` dans Android Studio.
-2. Dans SDK Manager, installer Android SDK Platform 37, Build-Tools 37.0.0 et NDK 27.1.12297006 (versions du fichier android/build.gradle).
-3. Laisser Android Studio synchroniser Gradle. Utiliser son JDK intégré dans les paramètres Gradle.
-4. Dans Device Manager, créer et démarrer un émulateur Android.
-5. Depuis la racine du dépôt, lancer Metro :
+Depuis la racine du dépôt :
 
 ```powershell
-npm start --prefix mobile
-```
-
-6. Cliquer sur Run dans Android Studio, avec le module app et cet émulateur sélectionnés.
-
-Alternative en ligne de commande, dans un second terminal :
-
-```powershell
-$env:JAVA_HOME = 'C:\Program Files\Android\Android Studio\jbr'
-$env:ANDROID_HOME = Join-Path $env:LOCALAPPDATA 'Android\Sdk'
-$env:Path = "$env:JAVA_HOME\bin;$env:ANDROID_HOME\platform-tools;$env:Path"
+npm install --prefix Frontend
+npm install --prefix mobile
+npm run sync --prefix mobile
+npm run build:android --prefix mobile
 npm run android --prefix mobile
 ```
 
-Les SDK 34 et 35 présents initialement sur cette machine ne suffisent pas pour compiler cette version du projet. Aucun lancement de l’émulateur n’a encore été validé.
+La dernière commande ouvre `mobile/android` dans Android Studio. Sélectionner l’émulateur ou le téléphone puis Run. L’APK de développement est dans `mobile/android/app/build/outputs/apk/debug/app-debug.apk`.
 
-## Backend
+Après chaque modification du frontend : exécuter `sync`, puis reconstruire/réinstaller. Aucun serveur Metro ni serveur Vite n’est nécessaire pour cette APK. Les fichiers HTML/CSS/JS sont embarqués, pas chargés depuis le site Vercel.
 
-Le backend Express reste dans `../backend`. Depuis un émulateur Android Studio, l’adresse du PC hôte est `10.0.2.2` : l’API locale sera donc `http://10.0.2.2:3001/api`, et non localhost. Cette connexion sera intégrée avec l’authentification mobile.
+Utiliser le JDK intégré d’Android Studio, Android SDK 36 et les versions Gradle générées par Capacitor. `build:android` utilise automatiquement le JDK standard d’Android Studio sur Windows si JAVA_HOME n’est pas défini.
 
-## Organisation et objectif
+## API et authentification
 
-- `App.tsx` : point d’entrée React.
-- `android/` : projet Android Studio et future intégration WhatsApp.
-- `ios/` : projet iOS, compilation avec Xcode sur macOS.
-- `__tests__/` : tests React Native.
+`sync` compile le frontend en mode production et lit `Frontend/.env.production`, notamment son `VITE_API_URL`. Les secrets Google et PostgreSQL restent exclusivement dans le backend. Ne pas ajouter de secret dans une variable VITE_.
 
-L’application complète doit reprendre la création et l’édition des stickers fixes et animés, les comptes et les packs du site, puis ajouter l’import natif dans WhatsApp.
+Les requêtes JSON utilisent CapacitorHttp avec les cookies Android. Les images et les modèles de détourage utilisent les APIs web ordinaires pour éviter de faire transiter de gros fichiers par le pont natif. Les originaux restent sur l’appareil. Les brouillons restent locaux et séparés par utilisateur ; seuls les stickers ajoutés au compte sont synchronisés.
+
+L’origine locale de Capacitor diffère de celle de l’ancienne WebView React Native. Une nouvelle connexion au compte peut donc être nécessaire. Les anciens brouillons et packs invités ne sont pas automatiquement transférés entre ces deux stockages ; les packs sauvegardés dans le compte restent accessibles via le backend.
+
+La connexion Google s’ouvre dans le navigateur système et utilise les endpoints `/api/auth/google/mobile` et `/api/auth/google/mobile/finish` déjà présents dans le backend. Le backend déployé doit contenir la migration 005 et ces endpoints. Le retour `stickerstudio://auth/complete` rouvre l’application sans transporter de jeton de session. Les identifiants OAuth Google et l’URI HTTPS de callback doivent être configurés sur le backend déployé.
+
+## Ajouter un pack à WhatsApp
+
+1. Créer entre **3 et 6 stickers**, puis donner un nom au pack.
+2. Appuyer sur **Ajouter à WhatsApp** dans l’atelier ou la collection.
+3. Choisir WhatsApp ou WhatsApp Business si les deux sont installés.
+4. Confirmer l’ajout dans WhatsApp. Le pack apparaît dans son sélecteur de stickers.
+
+Cela installe un pack ; l’utilisateur choisit ensuite sa conversation et envoie ses stickers depuis WhatsApp.
+
+Le module vérifie les fichiers WebP 512 × 512, les plafonds de 100 Ko (fixes) / 500 Ko (animés), la durée maximale de 10 secondes et le minimum de 8 ms par image. Un pack contient uniquement des stickers fixes ou uniquement des stickers animés. L’icône de pack 96 × 96 est générée automatiquement. Une mise à jour garde l’identifiant du pack et change la version de ses fichiers.
+
+Les packs explicitement exportés sont conservés dans le stockage privé Android pour que WhatsApp puisse continuer à les lire. Le ContentProvider n’expose que leurs métadonnées et leurs fichiers, sous la permission de lecture WhatsApp. Il n’expose ni compte, ni photo originale. La déconnexion du compte ne retire pas un pack déjà transmis à WhatsApp.
+
+L’intégration native est Android. La migration iOS et son intégration WhatsApp ne sont pas incluses dans cette APK.
+
+## Tests
+
+```powershell
+npm test --prefix backend
+npm run build:android --prefix mobile
+npm run test:android --prefix mobile
+```
+
+La dernière commande nécessite un émulateur démarré. Les tests Android vérifient le contrat ContentProvider, les fichiers, les mises à jour et le refus des chemins non autorisés. Un essai dans WhatsApp reste nécessaire pour vérifier sa confirmation et l’apparition réelle du pack.
+
+## Organisation
+
+- `capacitor.config.json` : identifiant Android, répertoire du frontend compilé et plugins.
+- `android/` : projet Android Studio, `StudioPlugin`, `StickerStore`, `StickerContentProvider`, validation WebP et tests.
+- `scripts/` : compilation, synchronisation et tests.
+- `.legacy-react-native/` : ancienne base conservée localement pendant la migration, ignorée par Git et non embarquée.
+
+Le certificat de débogage existant est conservé pour permettre la réinstallation sur l’émulateur. Une version de distribution doit être signée avec votre clé de production.

@@ -12,6 +12,7 @@ import Home from "./pages/Home";
 import Auth from "./pages/Auth";
 import Studio from "./pages/Studio";
 import Library from "./pages/Library";
+import NativeLifecycle from "./components/NativeLifecycle";
 function Site() {
   const { user, ready, sessionError, retrySession } = useSession();
   const { pathname } = useLocation();
@@ -72,6 +73,7 @@ function Site() {
 export default function App() {
   return (
     <BrowserRouter>
+      <NativeLifecycle />
       <SessionProvider>
         <Site />
       </SessionProvider>

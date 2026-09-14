@@ -98,7 +98,11 @@ La connexion Google et l’association explicite depuis « Mes stickers » sont 
 - Transfert des stickers locaux vers le compte avec détection des doublons.
 - Un pack de 6 stickers maximum par compte.
 
-Les photos originales restent sur l’appareil. Seuls les stickers ajoutés au compte sont envoyés au serveur. Les ZIP ne s’installent pas directement dans WhatsApp : l’intégration mobile reste à développer.
+Les photos originales restent sur l’appareil. Seuls les stickers ajoutés au compte sont envoyés au serveur. Les ZIP ne s’installent pas directement dans WhatsApp. L’application Android Capacitor propose un bouton « Ajouter à WhatsApp » pour les packs de 3 à 6 stickers, avec confirmation dans WhatsApp.
+
+## Application Android
+
+Le dossier [mobile](mobile/README.md) contient le projet Capacitor. Il embarque le frontend React et ajoute le fournisseur Android de packs WhatsApp. Après une modification du frontend : `npm run sync --prefix mobile`, puis `npm run build:android --prefix mobile`. Ouvrir `mobile/android` dans Android Studio. Metro et React Native ne sont plus utilisés.
 
 ## Vérification
 
