@@ -25,6 +25,21 @@ public class StudioPlugin extends Plugin {
     @PluginMethod public void availability(PluginCall call) {
         call.resolve(new JSObject().put("whatsapp", installed("com.whatsapp")).put("business", installed("com.whatsapp.w4b")));
     }
+    @PluginMethod public void openAuth(PluginCall call) {
+        String url = call.getString("url");
+        if (url == null || url.isEmpty()) {
+            call.reject("URL manquante");
+            return;
+        }
+        try {
+            Intent intent = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(intent);
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("Impossible d'ouvrir l'URL", e);
+        }
+    }
     @PluginMethod public void addPack(PluginCall call) {
         if (adding) { call.reject("Un ajout est déjà en cours."); return; }
         String target = call.getString("target", "com.whatsapp");

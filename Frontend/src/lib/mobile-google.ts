@@ -1,11 +1,12 @@
-import { api, getApiUrl } from "./api";
+import { api } from "./api";
 import { nativeRequest } from "./native";
 
 export async function mobileGoogleLogin(link: boolean, signal: AbortSignal) {
   const request = await api<{ id: string; secret: string }>("/auth/google/mobile", {
     method: "POST", body: JSON.stringify({ link }), signal,
   });
-  const url = new URL(getApiUrl(`/auth/google?mobile=${request.id}`), window.location.origin).href;
+  const backendUrl = import.meta.env.VITE_API_URL || window.location.origin;
+  const url = `${backendUrl}/api/auth/google?mobile=${request.id}`;
   await nativeRequest({ type: "open-auth", url });
   const deadline = Date.now() + 10 * 60 * 1000;
   while (!signal.aborted && Date.now() < deadline) {
